@@ -8,7 +8,7 @@ for an organization. Data is retrieved from the GitHub API and stored in S3.
 import json
 import logging
 import os
-from typing import Optional
+from typing import Optional, Any
 
 import boto3
 import github_api_toolkit
@@ -298,6 +298,53 @@ def get_team_history(
     return response.json()
 
 
+def get_dict_value(dictionary: dict, key: str) -> Any:
+    """Gets a value from a dictionary and raises an exception if it is not found.
+
+    Args:
+        dictionary (dict): The dictionary to get the value from.
+        key (str): The key to get the value for.
+
+    Raises:
+        Exception: If the key is not found in the dictionary.
+
+    Returns:
+        Any: The value of the key in the dictionary.
+    """
+    value = dictionary.get(key)
+
+    if value is None:
+        raise Exception(f"Key {key} not found in the dictionary.")
+
+    return value
+
+
+def get_config_file(path: str) -> Any:
+    """Loads a configuration file as a dictionary.
+
+    Args:
+        path (str): The path to the configuration file.
+
+    Raises:
+        Exception: If the configuration file is not found.
+
+    Returns:
+        Any: The configuration file as a dictionary.
+    """
+    try:
+        with open(path) as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        error_message = f"{path} configuration file not found. Please check the path."
+        raise Exception(error_message) from None
+
+    if type(config) is not dict:
+        error_message = f"{path} configuration file is not a dictionary. Please check the file contents."
+        raise Exception(error_message)
+
+    return config
+
+
 def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
     """AWS Lambda handler function for GitHub Copilot usage data aggregation.
 
@@ -315,11 +362,19 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
     Returns:
         str: Completion message.
     """
+
+    # Load config file
+    config = get_config_file("./config/config.json")
+
+    features = get_dict_value(config, "features")
+
     # Create an S3 client
     session = boto3.Session()
     s3 = session.client("s3")
 
     logger.info("S3 client created")
+
+    # TODO: Check whether to use local config or cloud config
 
     # Get the .pem file from AWS Secrets Manager
     secret_manager = session.client("secretsmanager", region_name=secret_region)
