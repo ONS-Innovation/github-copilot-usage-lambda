@@ -1,6 +1,6 @@
 {
     "features": {
         "show_log_locally": false,
-        "use_local_config": false
+        "write_data_locally": false
     }
 }

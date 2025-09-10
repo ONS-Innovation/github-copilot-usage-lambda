@@ -8,7 +8,7 @@ for an organization. Data is retrieved from the GitHub API and stored in S3.
 import json
 import logging
 import os
-from typing import Optional, Any
+from typing import Any, Optional
 
 import boto3
 import github_api_toolkit
@@ -32,6 +32,8 @@ BUCKET_NAME = f"{account}-copilot-usage-dashboard"
 OBJECT_NAME = "historic_usage_data.json"
 
 logger = logging.getLogger()
+
+logger.setLevel(logging.INFO)
 
 # Example Log Output:
 #
@@ -248,7 +250,11 @@ def create_dictionary(
 
 
 def update_s3_object(
-    s3_client: boto3.client, bucket_name: str, object_name: str, data: dict
+    s3_client: boto3.client,
+    bucket_name: str,
+    object_name: str,
+    data: dict,
+    write_data_locally: bool = False, # TODO write_data_locally
 ) -> bool:
     """Update an S3 object with new data.
 
@@ -339,7 +345,9 @@ def get_config_file(path: str) -> Any:
         raise Exception(error_message) from None
 
     if type(config) is not dict:
-        error_message = f"{path} configuration file is not a dictionary. Please check the file contents."
+        error_message = (
+            f"{path} configuration file is not a dictionary. Please check the file contents."
+        )
         raise Exception(error_message)
 
     return config
@@ -362,19 +370,33 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
     Returns:
         str: Completion message.
     """
-
     # Load config file
     config = get_config_file("./config/config.json")
 
     features = get_dict_value(config, "features")
+
+    show_log_locally = get_dict_value(features, "show_log_locally")
+
+    write_data_locally = get_dict_value(features, "write_data_locally")
+
+    # Remove any existing handlers to avoid duplicate logs
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # Toggle local logging
+    if show_log_locally:
+        # Add a StreamHandler to log to the console
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
 
     # Create an S3 client
     session = boto3.Session()
     s3 = session.client("s3")
 
     logger.info("S3 client created")
-
-    # TODO: Check whether to use local config or cloud config
 
     # Get the .pem file from AWS Secrets Manager
     secret_manager = session.client("secretsmanager", region_name=secret_region)
