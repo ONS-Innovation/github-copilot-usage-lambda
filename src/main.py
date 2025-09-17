@@ -115,13 +115,14 @@ def get_copilot_team_date(gh: github_api_toolkit.github_interface, page: int) ->
 
 
 def get_and_update_historic_usage(
-    s3: boto3.client, gh: github_api_toolkit.github_interface
+    s3: boto3.client, gh: github_api_toolkit.github_interface, write_data_locally: bool
 ) -> tuple:
     """Get and update historic usage data from GitHub Copilot.
 
     Args:
         s3 (boto3.client): An S3 client.
         gh (github_api_toolkit.github_interface): An instance of the github_interface class.
+        write_data_locally (bool): Whether to write data locally instead of to S3.
 
     Returns:
         tuple: A tuple containing the updated historic usage data and a list of dates added.
@@ -155,18 +156,28 @@ def get_and_update_historic_usage(
         extra={"no_days_added": len(dates_added), "dates_added": dates_added},
     )
 
-    # Write the updated historic_usage to historic_usage_data.json
-    update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, historic_usage)
+    if not write_data_locally:
+        # Write the updated historic_usage to historic_usage_data.json
+        update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, historic_usage)
+    else:
+        local_path = f"local_data/{OBJECT_NAME}"
+        os.makedirs("local_data", exist_ok=True)
+        with open(local_path, "w", encoding="utf-8") as f:
+            json.dump(historic_usage, f, indent=4)
+        logger.info(
+            "Historic usage data written locally to %s (S3 skipped)", local_path
+        )
 
     return historic_usage, dates_added
 
 
-def get_and_update_copilot_teams(s3: boto3.client, gh: github_api_toolkit.github_interface) -> list:
+def get_and_update_copilot_teams(s3: boto3.client, gh: github_api_toolkit.github_interface, write_data_locally: bool) -> list:
     """Get and update GitHub Teams with Copilot Data.
 
     Args:
         s3 (boto3.client): An S3 client.
         gh (github_api_toolkit.github_interface): An instance of the github_interface class.
+        write_data_locally (bool): Whether to write data locally instead of to S3.
 
     Returns:
         list: A list of GitHub Teams with Copilot Data.
@@ -193,7 +204,14 @@ def get_and_update_copilot_teams(s3: boto3.client, gh: github_api_toolkit.github
         extra={"no_teams": len(copilot_teams)},
     )
 
-    update_s3_object(s3, BUCKET_NAME, "copilot_teams.json", copilot_teams)
+    if not write_data_locally:
+        update_s3_object(s3, BUCKET_NAME, "copilot_teams.json", copilot_teams)
+    else:
+        local_path = "local_data/copilot_teams.json"
+        os.makedirs("local_data", exist_ok=True)
+        with open(local_path, "w", encoding="utf-8") as f:
+            json.dump(copilot_teams, f, indent=4)
+        logger.info("Copilot teams data written locally to %s (S3 skipped)", local_path)
 
     return copilot_teams
 
@@ -249,14 +267,15 @@ def create_dictionary(
     return list(existing_team_data_map.values())
 
 
+# TODO: refactor update_s3_object to accept write_data_locally to handle local writes logic
 def update_s3_object(
     s3_client: boto3.client,
     bucket_name: str,
     object_name: str,
     data: dict,
-    write_data_locally: bool = False, # TODO write_data_locally
+    write_data_locally: bool = False,
 ) -> bool:
-    """Update an S3 object with new data.
+    """Update an S3 object with new data or write locally based on the flag.
 
     Args:
         s3_client (boto3.client): The S3 client.
@@ -419,10 +438,10 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
     logger.info("API Controller created")
 
     # Copilot Usage Data (Historic)
-    historic_usage, dates_added = get_and_update_historic_usage(s3, gh)
+    historic_usage, dates_added = get_and_update_historic_usage(s3, gh, write_data_locally)
 
     # GitHub Teams with Copilot Data
-    copilot_teams = get_and_update_copilot_teams(s3, gh)
+    copilot_teams = get_and_update_copilot_teams(s3, gh, write_data_locally)
 
     logger.info("Getting history of each team identified previously")
 
@@ -436,11 +455,19 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
 
     logger.info("Existing team history has %d entries", len(existing_team_history))
 
-    # Convert to dictionary for quick lookup
-    updated_team_history = create_dictionary(gh, copilot_teams, existing_team_history)
+    if not write_data_locally:
+        # Convert to dictionary for quick lookup
+        updated_team_history = create_dictionary(gh, copilot_teams, existing_team_history)
 
-    # Write updated team history to S3
-    update_s3_object(s3, BUCKET_NAME, "teams_history.json", updated_team_history)
+        # Write updated team history to S3
+        update_s3_object(s3, BUCKET_NAME, "teams_history.json", updated_team_history)
+    else:
+        local_path = "local_data/teams_history.json"
+        os.makedirs("local_data", exist_ok=True)
+        updated_team_history = create_dictionary(gh, copilot_teams, existing_team_history)
+        with open(local_path, "w", encoding="utf-8") as f:
+            json.dump(updated_team_history, f, indent=4)
+        logger.info("Team history written locally to %s (S3 skipped)", local_path)
 
     logger.info(
         "Process complete",
@@ -459,5 +486,5 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
 
 # # Dev Only
 # # Uncomment the following line to run the script locally
-# if __name__ == "__main__":
-#     handler(None, None)
+if __name__ == "__main__":
+    handler(None, None)
