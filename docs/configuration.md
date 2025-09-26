@@ -1,6 +1,6 @@
 # Configuration
 
-The copilot lambda uses a local configuration file to manage its settings, located within `./config/config.json`.
+The Copilot lambda uses a local configuration file to manage its settings, located within `./config/config.json`.
 
 ## `config.json`
 
