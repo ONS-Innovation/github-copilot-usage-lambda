@@ -1,6 +1,6 @@
 {
-    "features": {
-        "show_log_locally": false,
-        "write_data_locally": false
-    }
+  "features": {
+    "show_log_locally": false,
+    "write_data_locally": false
+  }
 }
