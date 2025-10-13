@@ -267,15 +267,13 @@ def create_dictionary(
     return list(existing_team_data_map.values())
 
 
-# TODO: refactor update_s3_object to accept write_data_locally to handle local writes logic
 def update_s3_object(
     s3_client: boto3.client,
     bucket_name: str,
     object_name: str,
     data: dict,
-    write_data_locally: bool = False,
 ) -> bool:
-    """Update an S3 object with new data or write locally based on the flag.
+    """Update an S3 object with new data.
 
     Args:
         s3_client (boto3.client): The S3 client.

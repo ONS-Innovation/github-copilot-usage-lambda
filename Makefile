@@ -12,6 +12,7 @@ clean: ## Clean the temporary files.
 	rm -rf .pytest_cache
 	rm -rf tests/__pycache__
 	rm -rf .coverage
+	rm -rf local_data
 
 .PHONY: black-check
 black-check: ## Run black for code formatting, without fixing.

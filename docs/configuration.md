@@ -21,15 +21,13 @@ This section contains feature flags that control which of the tool's features ar
 
 #### `show_log_locally`
 
-TODO: Confirm this section
-If set to `true`, the tool will output logs to a `debug.log` file at the root of the project directory. This is useful for debugging purposes. If set to `false`, logs will not be saved locally.
+If set to `true`, the tool will output logs to the terminal.
 
 When deploying to AWS, this should be set to `false` to avoid files being written to the local filesystem.
 
 #### `write_data_locally`
 
-TODO: Update this section
-If set to `true`, the tool will use the local configuration file (`config.json`) for its settings (overriding any cloud configuration). If set to `false`, the tool will fetch the configuration from the cloud (S3 bucket).
+If set to `true`, the tool will skip writing to S3 and instead write data for copilot teams, historic usage, and teams history to `local_data`.
 
 **When deploying to AWS, this must be set to `false` to ensure the tool writes to AWS.**
 
@@ -48,9 +46,6 @@ When testing locally, you might set the `config.json` file as follows:
 }
 ```
 
-TODO: Confirm
-This will ensure that the local configuration is used, logs are saved to `debug.log`, and no notifications are created during testing.
-
 ### Example On AWS
 
 When deploying to AWS, the `config.json` file should be set as follows:
@@ -64,6 +59,6 @@ When deploying to AWS, the `config.json` file should be set as follows:
 }
 ```
 
-This configuration ensures that the tool does not log or write data locally
+This configuration ensures that the tool does not log or write data locally.
 
 **It is essential that `write_data_locally` is set to `false` when deploying to AWS.**
