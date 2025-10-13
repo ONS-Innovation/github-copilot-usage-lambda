@@ -164,14 +164,14 @@ def get_and_update_historic_usage(
         os.makedirs("local_data", exist_ok=True)
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(historic_usage, f, indent=4)
-        logger.info(
-            "Historic usage data written locally to %s (S3 skipped)", local_path
-        )
+        logger.info("Historic usage data written locally to %s (S3 skipped)", local_path)
 
     return historic_usage, dates_added
 
 
-def get_and_update_copilot_teams(s3: boto3.client, gh: github_api_toolkit.github_interface, write_data_locally: bool) -> list:
+def get_and_update_copilot_teams(
+    s3: boto3.client, gh: github_api_toolkit.github_interface, write_data_locally: bool
+) -> list:
     """Get and update GitHub Teams with Copilot Data.
 
     Args:
