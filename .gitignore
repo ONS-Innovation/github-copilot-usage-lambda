@@ -68,4 +68,5 @@ terraform.rc
 megalinter-reports/
 
 # Ignore locally written data
-local_data
+output/
+debug.log

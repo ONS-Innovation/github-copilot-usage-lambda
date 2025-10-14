@@ -93,7 +93,7 @@ def get_copilot_team_date(gh: github_api_toolkit.github_interface, page: int) ->
             team_html_url = team.get("html_url", "")
 
             logger.info(
-                "Team %s has Copilot data",
+                f"Team {team_name} has Copilot data",
                 extra={
                     "team_name": team_name,
                     "team_slug": team_slug,
@@ -160,8 +160,8 @@ def get_and_update_historic_usage(
         # Write the updated historic_usage to historic_usage_data.json
         update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, historic_usage)
     else:
-        local_path = f"local_data/{OBJECT_NAME}"
-        os.makedirs("local_data", exist_ok=True)
+        local_path = f"output/{OBJECT_NAME}"
+        os.makedirs("output", exist_ok=True)
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(historic_usage, f, indent=4)
         logger.info("Historic usage data written locally to %s (S3 skipped)", local_path)
@@ -207,8 +207,8 @@ def get_and_update_copilot_teams(
     if not write_data_locally:
         update_s3_object(s3, BUCKET_NAME, "copilot_teams.json", copilot_teams)
     else:
-        local_path = "local_data/copilot_teams.json"
-        os.makedirs("local_data", exist_ok=True)
+        local_path = "output/copilot_teams.json"
+        os.makedirs("output", exist_ok=True)
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(copilot_teams, f, indent=4)
         logger.info("Copilot teams data written locally to %s (S3 skipped)", local_path)
@@ -316,7 +316,8 @@ def get_team_history(
     response = gh.get(f"/orgs/{org}/team/{team}/copilot/metrics", params=query_params)
 
     if not isinstance(response, Response):
-        logger.error("Unexpected response type: %s", type(response))
+        # If the response is not a Response object, no copilot data is available for this team
+        # We can return None which is then handled by the calling function
         return None
     return response.json()
 
@@ -396,18 +397,12 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
 
     write_data_locally = get_dict_value(features, "write_data_locally")
 
-    # Remove any existing handlers to avoid duplicate logs
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
     # Toggle local logging
     if show_log_locally:
-        # Add a StreamHandler to log to the console
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
+        logging.basicConfig(
+            filename="debug.log",
+            filemode="w",
+        )
 
     # Create an S3 client
     session = boto3.Session()
@@ -460,8 +455,8 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
         # Write updated team history to S3
         update_s3_object(s3, BUCKET_NAME, "teams_history.json", updated_team_history)
     else:
-        local_path = "local_data/teams_history.json"
-        os.makedirs("local_data", exist_ok=True)
+        local_path = "output/teams_history.json"
+        os.makedirs("output", exist_ok=True)
         updated_team_history = create_dictionary(gh, copilot_teams, existing_team_history)
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(updated_team_history, f, indent=4)
