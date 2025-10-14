@@ -93,7 +93,8 @@ def get_copilot_team_date(gh: github_api_toolkit.github_interface, page: int) ->
             team_html_url = team.get("html_url", "")
 
             logger.info(
-                f"Team {team_name} has Copilot data",
+                "Team % has Copilot data",
+                team_name,
                 extra={
                     "team_name": team_name,
                     "team_slug": team_slug,
@@ -338,7 +339,7 @@ def get_dict_value(dictionary: dict, key: str) -> Any:
     value = dictionary.get(key)
 
     if value is None:
-        raise Exception(f"Key {key} not found in the dictionary.")
+        raise ValueError(f"Key {key} not found in the dictionary.")
 
     return value
 
@@ -356,22 +357,22 @@ def get_config_file(path: str) -> Any:
         Any: The configuration file as a dictionary.
     """
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             config = json.load(f)
     except FileNotFoundError:
         error_message = f"{path} configuration file not found. Please check the path."
-        raise Exception(error_message) from None
+        raise FileNotFoundError(error_message) from None
 
-    if type(config) is not dict:
+    if not isinstance(config, dict):
         error_message = (
             f"{path} configuration file is not a dictionary. Please check the file contents."
         )
-        raise Exception(error_message)
+        raise TypeError(error_message)
 
     return config
 
 
-def handler(event: dict, context) -> str:  # pylint: disable=unused-argument
+def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, too-many-locals
     """AWS Lambda handler function for GitHub Copilot usage data aggregation.
 
     This function:
