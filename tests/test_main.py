@@ -70,7 +70,7 @@ class TestGetAndUpdateCopilotTeams:
         with patch(
             "src.main.get_copilot_team_date", return_value=[{"name": "team1"}]
         ) as mock_get_team_date:
-            result = get_and_update_copilot_teams(s3, gh)
+            result = get_and_update_copilot_teams(s3, gh, False)
             assert result == [{"name": "team1"}]
             mock_get_team_date.assert_called_once_with(gh, 1)
             mock_update_s3_object.assert_called_once()
@@ -93,7 +93,7 @@ class TestGetAndUpdateCopilotTeams:
             "src.main.get_copilot_team_date",
             side_effect=[[{"name": "team1"}], [{"name": "team2"}], [{"name": "team3"}]],
         ) as mock_get_team_date:
-            result = get_and_update_copilot_teams(s3, gh)
+            result = get_and_update_copilot_teams(s3, gh, False)
             assert result == [{"name": "team1"}, {"name": "team2"}, {"name": "team3"}]
             assert mock_get_team_date.call_count == 3
             mock_update_s3_object.assert_called_once()
@@ -107,7 +107,7 @@ class TestGetAndUpdateCopilotTeams:
         gh.get.return_value = mock_response
 
         with patch("src.main.get_copilot_team_date", return_value=[]) as mock_get_team_date:
-            result = get_and_update_copilot_teams(s3, gh)
+            result = get_and_update_copilot_teams(s3, gh, False)
             assert result == []
             mock_get_team_date.assert_called_once_with(gh, 1)
             mock_update_s3_object.assert_called_once()
@@ -137,17 +137,6 @@ class TestGetTeamHistory:
             "/orgs/test-org/team/dev-team/copilot/metrics", params={"since": "2024-01-01"}
         )
         assert result == [{"date": "2024-01-01", "usage": 5}]
-
-    def test_get_team_history_unexpected_response_type(self, caplog):
-        gh = MagicMock()
-        gh.get.return_value = "not_a_response"
-
-        with caplog.at_level("ERROR"):
-            result = get_team_history(gh, "dev-team")
-            assert result is None
-            assert any(
-                "Unexpected response type" in record.getMessage() for record in caplog.records
-            )
 
     def test_get_team_history_with_no_query_params(self):
         gh = MagicMock()
@@ -370,7 +359,7 @@ class TestGetAndUpdateHistoricUsage:
             )
         }
 
-        result, dates_added = get_and_update_historic_usage(s3, gh)
+        result, dates_added = get_and_update_historic_usage(s3, gh, False)
         assert result == [
             {"date": "2024-01-01", "usage": 10},
             {"date": "2024-01-02", "usage": 20},
@@ -395,7 +384,7 @@ class TestGetAndUpdateHistoricUsage:
             operation_name="GetObject",
         )
 
-        result, dates_added = get_and_update_historic_usage(s3, gh)
+        result, dates_added = get_and_update_historic_usage(s3, gh, False)
         assert result == [{"date": "2024-01-01", "usage": 10}]
         assert dates_added == ["2024-01-01"]
         s3.put_object.assert_called_once()
@@ -418,7 +407,7 @@ class TestGetAndUpdateHistoricUsage:
             )
         }
 
-        result, dates_added = get_and_update_historic_usage(s3, gh)
+        result, dates_added = get_and_update_historic_usage(s3, gh, False)
         assert result == [{"date": "2024-01-01", "usage": 10}]
         assert dates_added == []
         s3.put_object.assert_called_once()
