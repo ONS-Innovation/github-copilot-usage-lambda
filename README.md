@@ -89,7 +89,7 @@ Further information can be found in [this project's documentation](/docs/index.m
    **Example Output:**
 
    | REPOSITORY                  | TAG    | IMAGE ID     | CREATED        | SIZE  |
-   | --------------------------- | ------ | ------------ | -------------- | ----- |
+   |-----------------------------|--------|--------------|----------------|-------|
    | copilot-usage-lambda-script | latest | 0bbe73d9256f | 11 seconds ago | 224MB |
 
 3. Run the image locally mapping local host port (9000) to container port (8080) and passing in AWS credentials to download a .pem file from the AWS Secrets Manager to the running container. These credentials will also be used to upload and download `historic_usage_data.json` to and from S3.
@@ -129,7 +129,7 @@ Further information can be found in [this project's documentation](/docs/index.m
    **Example output:**
 
    | CONTAINER ID | IMAGE                       | COMMAND                | CREATED        | STATUS        | PORTS                                     | NAMES        |
-   | ------------ | --------------------------- | ---------------------- | -------------- | ------------- | ----------------------------------------- | ------------ |
+   |--------------|-----------------------------|------------------------|----------------|---------------|-------------------------------------------|--------------|
    | 3f7d64676b1a | copilot-usage-lambda-script | "/lambda-entrypoint.…" | 44 seconds ago | Up 44 seconds | 0.0.0.0:9000->8080/tcp, :::9000->8080/tcp | nice_ritchie |
 
    Stop the container
