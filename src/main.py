@@ -400,6 +400,9 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
     # Toggle local logging
     if show_log_locally:
+        # This is a nightmare to test as it's really hard to get to.
+        # At some point we should look to make a wrapper for logging
+        # so it can be tested more easily.
         logging.basicConfig(
             filename="debug.log",
             filemode="w",
@@ -454,6 +457,8 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
         updated_team_history = create_dictionary(gh, copilot_teams, existing_team_history)
 
         # Write updated team history to S3
+        # This line isn't covered by tests as it's painful to get to.
+        # The function itself is tested though.
         update_s3_object(s3, BUCKET_NAME, "teams_history.json", updated_team_history)
     else:
         local_path = "output/teams_history.json"
