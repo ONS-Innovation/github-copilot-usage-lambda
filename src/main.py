@@ -93,7 +93,7 @@ def get_copilot_team_date(gh: github_api_toolkit.github_interface, page: int) ->
             team_html_url = team.get("html_url", "")
 
             logger.info(
-                "Team % has Copilot data",
+                "Team %s has Copilot data",
                 team_name,
                 extra={
                     "team_name": team_name,
@@ -123,7 +123,7 @@ def get_and_update_historic_usage(
     Args:
         s3 (boto3.client): An S3 client.
         gh (github_api_toolkit.github_interface): An instance of the github_interface class.
-        write_data_locally (bool): Whether to write data locally instead of to S3.
+        write_data_locally (bool): Whether to write data locally instead of to an S3 bucket.
 
     Returns:
         tuple: A tuple containing the updated historic usage data and a list of dates added.
@@ -178,7 +178,7 @@ def get_and_update_copilot_teams(
     Args:
         s3 (boto3.client): An S3 client.
         gh (github_api_toolkit.github_interface): An instance of the github_interface class.
-        write_data_locally (bool): Whether to write data locally instead of to S3.
+        write_data_locally (bool): Whether to write data locally instead of to an S3 bucket.
 
     Returns:
         list: A list of GitHub Teams with Copilot Data.

@@ -12,6 +12,7 @@ clean: ## Clean the temporary files.
 	rm -rf .pytest_cache
 	rm -rf tests/__pycache__
 	rm -rf .coverage
+	rm -rf megalinter-reports/
 	rm -rf output
 	rm -rf debug.log
 
