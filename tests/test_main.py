@@ -18,6 +18,8 @@ from src.main import (
     get_team_history,
     handler,
     update_s3_object,
+    get_dict_value,
+    get_config_file,
 )
 
 
@@ -70,7 +72,7 @@ class TestGetAndUpdateCopilotTeams:
         with patch(
             "src.main.get_copilot_team_date", return_value=[{"name": "team1"}]
         ) as mock_get_team_date:
-            result = get_and_update_copilot_teams(s3, gh)
+            result = get_and_update_copilot_teams(s3, gh, False)
             assert result == [{"name": "team1"}]
             mock_get_team_date.assert_called_once_with(gh, 1)
             mock_update_s3_object.assert_called_once()
@@ -93,7 +95,7 @@ class TestGetAndUpdateCopilotTeams:
             "src.main.get_copilot_team_date",
             side_effect=[[{"name": "team1"}], [{"name": "team2"}], [{"name": "team3"}]],
         ) as mock_get_team_date:
-            result = get_and_update_copilot_teams(s3, gh)
+            result = get_and_update_copilot_teams(s3, gh, False)
             assert result == [{"name": "team1"}, {"name": "team2"}, {"name": "team3"}]
             assert mock_get_team_date.call_count == 3
             mock_update_s3_object.assert_called_once()
@@ -107,7 +109,7 @@ class TestGetAndUpdateCopilotTeams:
         gh.get.return_value = mock_response
 
         with patch("src.main.get_copilot_team_date", return_value=[]) as mock_get_team_date:
-            result = get_and_update_copilot_teams(s3, gh)
+            result = get_and_update_copilot_teams(s3, gh, False)
             assert result == []
             mock_get_team_date.assert_called_once_with(gh, 1)
             mock_update_s3_object.assert_called_once()
@@ -115,6 +117,22 @@ class TestGetAndUpdateCopilotTeams:
             assert args[1].endswith("copilot-usage-dashboard")
             assert args[2] == "copilot_teams.json"
             assert args[3] == []
+
+    def test_write_data_locally_creates_file(self, tmp_path):
+        s3 = MagicMock()
+        gh = MagicMock()
+        response = MagicMock()
+        response.links = {}
+        gh.get.return_value = response
+
+        with patch("src.main.get_copilot_team_date", return_value=[{"name": "teamA"}]):
+            with patch("src.main.os.makedirs") as mock_makedirs, \
+                    patch("src.main.open", create=True) as mock_open:
+                result = get_and_update_copilot_teams(s3, gh, True)
+                assert result == [{"name": "teamA"}]
+                mock_makedirs.assert_called_once_with("output", exist_ok=True)
+                mock_open.assert_called_once()
+                s3.put_object.assert_not_called()
 
 
 class TestGetTeamHistory:
@@ -137,17 +155,6 @@ class TestGetTeamHistory:
             "/orgs/test-org/team/dev-team/copilot/metrics", params={"since": "2024-01-01"}
         )
         assert result == [{"date": "2024-01-01", "usage": 5}]
-
-    def test_get_team_history_unexpected_response_type(self, caplog):
-        gh = MagicMock()
-        gh.get.return_value = "not_a_response"
-
-        with caplog.at_level("ERROR"):
-            result = get_team_history(gh, "dev-team")
-            assert result is None
-            assert any(
-                "Unexpected response type" in record.getMessage() for record in caplog.records
-            )
 
     def test_get_team_history_with_no_query_params(self):
         gh = MagicMock()
@@ -370,7 +377,7 @@ class TestGetAndUpdateHistoricUsage:
             )
         }
 
-        result, dates_added = get_and_update_historic_usage(s3, gh)
+        result, dates_added = get_and_update_historic_usage(s3, gh, False)
         assert result == [
             {"date": "2024-01-01", "usage": 10},
             {"date": "2024-01-02", "usage": 20},
@@ -395,7 +402,7 @@ class TestGetAndUpdateHistoricUsage:
             operation_name="GetObject",
         )
 
-        result, dates_added = get_and_update_historic_usage(s3, gh)
+        result, dates_added = get_and_update_historic_usage(s3, gh, False)
         assert result == [{"date": "2024-01-01", "usage": 10}]
         assert dates_added == ["2024-01-01"]
         s3.put_object.assert_called_once()
@@ -418,10 +425,32 @@ class TestGetAndUpdateHistoricUsage:
             )
         }
 
-        result, dates_added = get_and_update_historic_usage(s3, gh)
+        result, dates_added = get_and_update_historic_usage(s3, gh, False)
         assert result == [{"date": "2024-01-01", "usage": 10}]
         assert dates_added == []
         s3.put_object.assert_called_once()
+
+    def test_write_data_locally_creates_file(self, tmp_path):
+        s3 = MagicMock()
+        gh = MagicMock()
+        usage_data = [{"date": "2024-01-01", "usage": 10}]
+        gh.get.return_value.json.return_value = usage_data
+
+        # S3 get_object raises ClientError
+        s3.get_object.side_effect = ClientError(
+            error_response={"Error": {"Code": "404", "Message": "Not Found"}},
+            operation_name="GetObject",
+        )
+
+        # Patch os.makedirs and open to use tmp_path
+        with patch("src.main.os.makedirs") as mock_makedirs, \
+                patch("src.main.open", create=True) as mock_open:
+            result, dates_added = get_and_update_historic_usage(s3, gh, True)
+            assert result == [{"date": "2024-01-01", "usage": 10}]
+            assert dates_added == ["2024-01-01"]
+            mock_makedirs.assert_called_once_with("output", exist_ok=True)
+            mock_open.assert_called_once()
+            s3.put_object.assert_not_called()
 
 
 class TestCreateDictionary:
@@ -501,3 +530,107 @@ class TestCreateDictionary:
             result = create_dictionary(gh, copilot_teams, existing_team_history)
             assert result == []
             assert mock_get_team_history.call_count == 1
+
+
+class TestGetTeamHistory:
+    def setup_method(self):
+        self.org_patch = patch("src.main.org", "test-org")
+        self.org_patch.start()
+
+    def teardown_method(self):
+        self.org_patch.stop()
+
+    def test_get_team_history_returns_metrics(self):
+        gh = MagicMock()
+        mock_response = MagicMock(spec=Response)
+        mock_response.json.return_value = [{"date": "2024-01-01", "usage": 5}]
+        gh.get.return_value = mock_response
+
+        result = get_team_history(gh, "dev-team", {"since": "2024-01-01"})
+        gh.get.assert_called_once_with(
+            "/orgs/test-org/team/dev-team/copilot/metrics", params={"since": "2024-01-01"}
+        )
+        assert result == [{"date": "2024-01-01", "usage": 5}]
+
+    def test_get_team_history_returns_empty_list(self):
+        gh = MagicMock()
+        mock_response = MagicMock(spec=Response)
+        mock_response.json.return_value = []
+        gh.get.return_value = mock_response
+
+        result = get_team_history(gh, "dev-team")
+        gh.get.assert_called_once_with("/orgs/test-org/team/dev-team/copilot/metrics", params=None)
+        assert result == []
+
+    def test_get_team_history_non_response_returns_none(self):
+        gh = MagicMock()
+        gh.get.return_value = "not_a_response"
+
+        result = get_team_history(gh, "dev-team")
+        gh.get.assert_called_once_with("/orgs/test-org/team/dev-team/copilot/metrics", params=None)
+        assert result is None
+
+    def test_get_team_history_with_query_params_none(self):
+        gh = MagicMock()
+        mock_response = MagicMock(spec=Response)
+        mock_response.json.return_value = [{"date": "2024-01-01", "usage": 5}]
+        gh.get.return_value = mock_response
+
+        result = get_team_history(gh, "dev-team", None)
+        gh.get.assert_called_once_with("/orgs/test-org/team/dev-team/copilot/metrics", params=None)
+        assert result == [{"date": "2024-01-01", "usage": 5}]
+
+
+class TestGetDictValue:
+    def test_get_dict_value_returns_value(self):
+        d = {"foo": "bar", "baz": 42}
+        assert get_dict_value(d, "foo") == "bar"
+        assert get_dict_value(d, "baz") == 42
+
+    def test_get_dict_value_raises_for_missing_key(self):
+        d = {"foo": "bar"}
+        try:
+            get_dict_value(d, "missing")
+        except ValueError as e:
+            assert str(e) == "Key missing not found in the dictionary."
+        else:
+            assert False, "ValueError not raised for missing key"
+
+    def test_get_dict_value_returns_none_for_key_with_none_value(self):
+        d = {"foo": None}
+        try:
+            get_dict_value(d, "foo")
+        except ValueError as e:
+            assert str(e) == "Key foo not found in the dictionary."
+        else:
+            assert False, "ValueError not raised for None value"
+
+
+class TestGetConfigFile:
+    def test_get_config_file_success(self, tmp_path):
+        config_data = {"features": {"show_log_locally": False}}
+        config_path = tmp_path / "config.json"
+        config_path.write_text(json.dumps(config_data), encoding="utf-8")
+
+        result = get_config_file(str(config_path))
+        assert result == config_data
+
+    def test_get_config_file_file_not_found(self):
+        missing_path = "nonexistent_config.json"
+        try:
+            get_config_file(missing_path)
+        except FileNotFoundError as e:
+            assert missing_path in str(e)
+        else:
+            assert False, "FileNotFoundError not raised"
+
+    def test_get_config_file_not_dict(self, tmp_path):
+        config_path = tmp_path / "config.json"
+        config_path.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
+
+        try:
+            get_config_file(str(config_path))
+        except TypeError as e:
+            assert "is not a dictionary" in str(e)
+        else:
+            assert False, "TypeError not raised for non-dict config"

@@ -66,3 +66,7 @@ terraform.rc
 
 # Ignore MegaLinter reports
 megalinter-reports/
+
+# Ignore locally written data
+output/
+debug.log

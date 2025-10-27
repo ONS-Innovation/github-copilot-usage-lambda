@@ -14,16 +14,6 @@ The Copilot dashboard can be found on the Copilot tab within the Digital Landsca
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Makefile](#makefile)
-  - [Documentation](#documentation)
-  - [Testing](#testing)
-  - [Linting](#linting)
-    - [Python](#python)
-    - [Markdown](#markdown)
-      - [Markdown Configuration](#markdown-configuration)
-      - [Markdown GitHub Action](#markdown-github-action)
-    - [Megalinter](#megalinter)
-      - [Megalinter Configuration](#megalinter-configuration)
-      - [Megalinter GitHub Action](#megalinter-github-action)
   - [AWS Lambda Scripts](#aws-lambda-scripts)
     - [Setup - Running in a container](#setup---running-in-a-container)
     - [Setup - running outside of a Container (Development only)](#setup---running-outside-of-a-container-development-only)
@@ -40,6 +30,16 @@ The Copilot dashboard can be found on the Copilot tab within the Digital Landsca
     - [Allowlisting your IP](#allowlisting-your-ip)
     - [Setting up a pipeline](#setting-up-a-pipeline)
     - [Triggering a pipeline](#triggering-a-pipeline)
+  - [Documentation](#documentation)
+  - [Testing](#testing)
+  - [Linting](#linting)
+    - [Python](#python)
+    - [Markdown](#markdown)
+      - [Markdown Configuration](#markdown-configuration)
+      - [Markdown GitHub Action](#markdown-github-action)
+    - [Megalinter](#megalinter)
+      - [Megalinter Configuration](#megalinter-configuration)
+      - [Megalinter GitHub Action](#megalinter-github-action)
 
 ## Prerequisites
 
@@ -61,110 +61,6 @@ This repository has a Makefile for executing common commands. To view all comman
 ```bash
 make all
 ```
-
-## Documentation
-
-This project uses MkDocs for documentation which gets deployed to GitHub Pages at a repository level.
-
-For more information about MkDocs, see the below documentation.
-
-[Getting Started with MkDocs](https://www.mkdocs.org/getting-started/)
-
-There is a guide to getting started on this repository's GitHub Pages site.
-
-## Testing
-
-This project uses Pytest for testing. The tests can be found in the `tests` folder.
-
-To run all tests, use `make test`.
-
-On pull request or push to the `main` branch, the tests will automatically run. The workflow will fail if any tests fail, or if test coverage is below 95%.
-
-The related workflow can be found in `.github/workflows/ci.yml`.
-
-## Linting
-
-### Python
-
-This project uses Black, Ruff, and Pylint for linting and code formatting on Python files in `src`. Configurations for each are located in `pyproject.toml`.
-
-The following Makefile commands can be used to run linting and optionally apply fixes or run a specific linter:
-
-```bash
-black-check ## Run black for code formatting, without fixing.
-
-black-apply ## Run black and fix code formatting.
-
-ruff-check ## Run ruff for linting and code formatting, without fixing.
-
-ruff-apply ## Run ruff and fix linting and code formatting.
-
-pylint ## Run pylint for code analysis.
-
-lint  ## Run Python linters without fixing.
-
-lint-apply ## Run black and ruff with auto-fix, and Pylint.
-```
-
-On pull request or push to the `main` branch, `make lint-check` will automatically run to check code quality, failing if there are any issues. It is up to the developer to apply fixes.
-
-The related workflow can be found in `.github/workflows/ci.yml`.
-
-### Markdown
-
-Markdown linting runs in a docker image, so docker must be running before attempting to lint.
-
-To lint all markdown files, run the following command:
-
-```bash
-make md-check
-```
-
-To fix all markdown files, run the following command:
-
-```bash
-make md-apply
-```
-
-#### Markdown Configuration
-
-The `.markdownlint.json` file in the root of the repository contains the configuration for markdownlint. This file is used to set the rules and settings for linting markdown files.
-
-Currently, MD013 (line length) is disabled. This is because the default line length of 80 characters is too restrictive.
-
-For a full list of rules, see [Markdownlint Rules / Aliases](https://github.com/DavidAnson/markdownlint?tab=readme-ov-file#rules--aliases)
-
-The `.markdownlintignore` file in the root of the repository is also used to prevent markdownlint running on unnecessary files such as `venv`.
-
-#### Markdown GitHub Action
-
-On pull request or push to the `main` branch, `make md-check` will automatically run to check for linting errors, failing if there are any issues. It is up to the developer to apply fixes.
-
-The related workflow can be found in `.github/workflows/ci.yml`.
-
-### Megalinter
-
-In addition to Python and Markdown-specific linting, this project uses Megalinter to catch all other types of linting errors across the project.
-
-Megalinter runs in a docker image, so docker must be running before attempting to lint.
-
-To lint with Megalinter, run:
-
-```bash
-make megalint
-```
-
-After running, Megalinter will create a folder named `megalinter-reports` containing detailed logs on linting.
-
-#### Megalinter Configuration
-
-The configuration file for Megalinter can be found in the root of the repository, named `.mega-linter.yml`.
-
-#### Megalinter GitHub Action
-
-On pull request or push to the `main` branch, Megalinter will automatically run to check project-wide linting, failing if there are any issues.
-
-The related workflow can be found in `.github/workflows/megalinter.yml`.
 
 ## AWS Lambda Scripts
 
@@ -485,3 +381,107 @@ Once the pipeline has been set, you can manually trigger a build on the Concours
 ```bash
 fly -t aws-sdp trigger-job -j github-copilot-usage-lambda-<branch-name>/build-and-push
 ```
+
+## Documentation
+
+This project uses MkDocs for documentation which gets deployed to GitHub Pages at a repository level.
+
+For more information about MkDocs, see the below documentation.
+
+[Getting Started with MkDocs](https://www.mkdocs.org/getting-started/)
+
+There is a guide to getting started on this repository's GitHub Pages site.
+
+## Testing
+
+This project uses Pytest for testing. The tests can be found in the `tests` folder.
+
+To run all tests, use `make test`.
+
+On pull request or push to the `main` branch, the tests will automatically run. The workflow will fail if any tests fail, or if test coverage is below 95%.
+
+The related workflow can be found in `.github/workflows/ci.yml`.
+
+## Linting
+
+### Python
+
+This project uses Black, Ruff, and Pylint for linting and code formatting on Python files in `src`. Configurations for each are located in `pyproject.toml`.
+
+The following Makefile commands can be used to run linting and optionally apply fixes or run a specific linter:
+
+```bash
+black-check ## Run black for code formatting, without fixing.
+
+black-apply ## Run black and fix code formatting.
+
+ruff-check ## Run ruff for linting and code formatting, without fixing.
+
+ruff-apply ## Run ruff and fix linting and code formatting.
+
+pylint ## Run pylint for code analysis.
+
+lint  ## Run Python linters without fixing.
+
+lint-apply ## Run black and ruff with auto-fix, and Pylint.
+```
+
+On pull request or push to the `main` branch, `make lint-check` will automatically run to check code quality, failing if there are any issues. It is up to the developer to apply fixes.
+
+The related workflow can be found in `.github/workflows/ci.yml`.
+
+### Markdown
+
+Markdown linting runs in a docker image, so docker must be running before attempting to lint.
+
+To lint all markdown files, run the following command:
+
+```bash
+make md-check
+```
+
+To fix all markdown files, run the following command:
+
+```bash
+make md-apply
+```
+
+#### Markdown Configuration
+
+The `.markdownlint.json` file in the root of the repository contains the configuration for markdownlint. This file is used to set the rules and settings for linting markdown files.
+
+Currently, MD013 (line length) is disabled. This is because the default line length of 80 characters is too restrictive.
+
+For a full list of rules, see [Markdownlint Rules / Aliases](https://github.com/DavidAnson/markdownlint?tab=readme-ov-file#rules--aliases)
+
+The `.markdownlintignore` file in the root of the repository is also used to prevent markdownlint running on unnecessary files such as `venv`.
+
+#### Markdown GitHub Action
+
+On pull request or push to the `main` branch, `make md-check` will automatically run to check for linting errors, failing if there are any issues. It is up to the developer to apply fixes.
+
+The related workflow can be found in `.github/workflows/ci.yml`.
+
+### Megalinter
+
+In addition to Python and Markdown-specific linting, this project uses Megalinter to catch all other types of linting errors across the project.
+
+Megalinter runs in a docker image, so docker must be running before attempting to lint.
+
+To lint with Megalinter, run:
+
+```bash
+make megalint
+```
+
+After running, Megalinter will create a folder named `megalinter-reports` containing detailed logs on linting.
+
+#### Megalinter Configuration
+
+The configuration file for Megalinter can be found in the root of the repository, named `.mega-linter.yml`.
+
+#### Megalinter GitHub Action
+
+On pull request or push to the `main` branch, Megalinter will automatically run to check project-wide linting, failing if there are any issues.
+
+The related workflow can be found in `.github/workflows/megalinter.yml`.
