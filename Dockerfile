@@ -27,6 +27,7 @@ RUN pip install --no-cache-dir poetry==1.5.0 &&\
 
 # Copy the source code into the container
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
+COPY config/ ${LAMBDA_TASK_ROOT}/config/
 
 HEALTHCHECK NONE
 
