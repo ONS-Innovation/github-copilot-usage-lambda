@@ -1,6 +1,9 @@
 # Overview
 
-AWS Lambda Function which updates the GitHub Copilot dashboard's historic information, stored within an S3 bucket.
+AWS Lambda Function which updates the GitHub Copilot dashboard's:
+- Organisation-wide historic data
+- Copilot teams
+- Teams history
 
 ## Tech Stack Overview
 
@@ -12,7 +15,7 @@ This project uses:
 
 ## Architecture Overview
 
-![Architecture Diagram](./diagrams/architecture.png)
+![Architecture Diagram](../diagrams/architecture.png)
 
 This project uses 2 major components:
 
@@ -33,4 +36,4 @@ This component is an imported library which is shared across multiple GitHub too
 
 ### Historic Data
 
-This section gathers data from AWS S3. The Copilot usage endpoints have a limitation where they only return the last 28 days worth of information. To get around this, the project has an AWS Lambda function which runs weekly and stores data within an S3 bucket.
+This section gathers data from AWS S3. The Copilot usage endpoints have a limitation where they only return the last 100 days worth of information. To get around this, the project has an AWS Lambda function which runs weekly and stores data within an S3 bucket.
