@@ -15,7 +15,7 @@ The `config.json` file contains the following:
 }
 ```
 
-### `features` Section
+### `features`
 
 This section contains feature flags that control which of the tool's features are enabled or disabled.
 
@@ -28,8 +28,6 @@ When deploying to AWS, this should be set to `false` to avoid files being writte
 #### `write_data_locally`
 
 If set to `true`, the tool will skip writing to the appropriate AWS S3 bucket and instead write data for copilot teams, historic usage, and teams history to `local_data`.
-
-**When deploying to AWS, this must be set to `false` to ensure the tool writes to AWS.**
 
 When debugging locally, you can set this to `true` to use the local configuration file. This is useful if you need to see the logs locally, without affecting the cloud deployment.
 

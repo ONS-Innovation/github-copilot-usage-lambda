@@ -2,8 +2,12 @@
 
 AWS Lambda Function which updates the GitHub Copilot dashboard's historic information, stored within an S3 bucket.
 
-## Techstack Overview
-TODO
+## Tech Stack Overview
+
+This project uses:
+- Python
+- AWS Lambda
+- AWS S3
 
 ## Architecture Overview
 

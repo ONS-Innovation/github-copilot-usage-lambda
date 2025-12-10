@@ -14,4 +14,4 @@ To setup and use the project, please refer to the [README](https://github.com/ON
 
 ## Technical Documentation
 
-TODO: Link to docs
+For information about the technical aspects of the Copilot Usage Lambda, please refer to the [Technical Documentation](./technical_documentation/overview.md).
