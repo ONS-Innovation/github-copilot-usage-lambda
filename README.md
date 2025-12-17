@@ -16,7 +16,7 @@ The Copilot dashboard can be found on the Copilot tab within the Digital Landsca
   - [Makefile](#makefile)
   - [AWS Lambda Scripts](#aws-lambda-scripts)
     - [Setup - Running in a container](#setup---running-in-a-container)
-    - [Setup - running outside of a Container (Development only)](#setup---running-outside-of-a-container-development-only)
+    - [Setup - running outside of a Container (Development only)](#running-outside-of-a-container-development-only)
     - [Storing the container on AWS Elastic Container Registry (ECR)](#storing-the-container-on-aws-elastic-container-registry-ecr)
     - [Deployment to AWS](#deployment-to-aws)
       - [Deployment Prerequisites](#deployment-prerequisites)
