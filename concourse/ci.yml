@@ -30,7 +30,7 @@ resources:
     source:
       file: tag-output/tag
 
-  # TODO: Setup shared ECR for Address Book Lambda. Sample below for reference.
+  # TODO: Setup shared ECR for Copilot Lambda. Sample below for reference.
 
   # - name: images-to-shared-ecr-backend
   #   type: registry-image
