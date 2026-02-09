@@ -232,7 +232,7 @@ jobs:
                     ./resource-repo/concourse/scripts/build_image.sh
             timeout: 15m
 
-          # TODO: Setup shared ECR for Address Book Lambda. Sample below for reference.
+          # TODO: Setup shared ECR for Copilot Lambda. Sample below for reference.
           # - in_parallel:
           #   - put: image-to-shared-ecr
           #     inputs:
