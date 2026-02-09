@@ -30,7 +30,7 @@ fi
 
 echo "${env}"
 
-cd resource-repo/terraform/service
+cd resource-repo/terraform
 
 terraform init -backend-config=env/"${env}"/backend-"${env}".tfbackend -reconfigure
 
