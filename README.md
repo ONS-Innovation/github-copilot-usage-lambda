@@ -2,7 +2,7 @@
 
 This repository contains the AWS Lambda Function for updating the GitHub Copilot dashboard's organisation-wide historic data, Copilot teams, and teams history.
 
-The Copilot dashboard can be found on the Copilot tab within the Digital Landscape.
+The Copilot dashboard can be found on the GitHub Copilot tab within the Digital Landscape.
 
 [View the Digital Landscape's repository](https://github.com/ONSdigital/keh-digital-landscape).
 
@@ -97,15 +97,15 @@ To run the Lambda function outside of a container, we need to execute the `handl
 
 2. Export the required environment variables:
 
-    ```bash
-    export AWS_ACCESS_KEY_ID=<aws_access_key_id>
-    export AWS_SECRET_ACCESS_KEY=<aws_secret_access_key>
-    export AWS_DEFAULT_REGION=eu-west-2
-    export AWS_SECRET_NAME=<aws_secret_name>
-    export GITHUB_ORG=ONSDigital
-    export GITHUB_APP_CLIENT_ID=<github_app_client_id>
-    export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
-    ```
+   ```bash
+   export AWS_ACCESS_KEY_ID=<aws_access_key_id>
+   export AWS_SECRET_ACCESS_KEY=<aws_secret_access_key>
+   export AWS_DEFAULT_REGION=eu-west-2
+   export AWS_SECRET_NAME=<aws_secret_name>
+   export GITHUB_ORG=ONSDigital
+   export GITHUB_APP_CLIENT_ID=<github_app_client_id>
+   export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
+   ```
 
 3. Run the script.
 
@@ -130,7 +130,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
    **Example Output:**
 
    | REPOSITORY                  | TAG    | IMAGE ID     | CREATED        | SIZE  |
-   |-----------------------------|--------|--------------|----------------|-------|
+   | --------------------------- | ------ | ------------ | -------------- | ----- |
    | copilot-usage-lambda-script | latest | 0bbe73d9256f | 11 seconds ago | 224MB |
 
 3. Run the image locally mapping local host port (9000) to container port (8080) and passing in AWS credentials to download a .pem file from the AWS Secrets Manager to the running container. These credentials will also be used to upload and download `historic_usage_data.json` to and from S3.
@@ -140,7 +140,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
    ```bash
    docker run --platform linux/amd64 -p 9000:8080 \
    -e AWS_ACCESS_KEY_ID=<aws_access_key_id> \
-   -e AWS_SECRET_ACCESS_KEY=<aws_secret_access_key_id> \
+   -e AWS_SECRET_ACCESS_KEY=<aws_secret_access_key> \
    -e AWS_DEFAULT_REGION=eu-west-2 \
    -e AWS_SECRET_NAME=<aws_secret_name> \
    -e GITHUB_ORG=ONSDigital \
@@ -170,7 +170,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
    **Example output:**
 
    | CONTAINER ID | IMAGE                       | COMMAND                | CREATED        | STATUS        | PORTS                                     | NAMES        |
-   |--------------|-----------------------------|------------------------|----------------|---------------|-------------------------------------------|--------------|
+   | ------------ | --------------------------- | ---------------------- | -------------- | ------------- | ----------------------------------------- | ------------ |
    | 3f7d64676b1a | copilot-usage-lambda-script | "/lambda-entrypoint.…" | 44 seconds ago | Up 44 seconds | 0.0.0.0:9000->8080/tcp, :::9000->8080/tcp | nice_ritchie |
 
    Stop the container
