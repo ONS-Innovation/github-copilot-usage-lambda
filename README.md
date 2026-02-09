@@ -4,7 +4,7 @@ This repository contains the AWS Lambda Function for updating the GitHub Copilot
 
 The Copilot dashboard can be found on the Copilot tab within the Digital Landscape.
 
-[View the Digital Landscape's repository](https://github.com/ONS-Innovation/keh-digital-landscape).
+[View the Digital Landscape's repository](https://github.com/ONSdigital/keh-digital-landscape).
 
 ---
 
@@ -14,10 +14,20 @@ The Copilot dashboard can be found on the Copilot tab within the Digital Landsca
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Makefile](#makefile)
-  - [AWS Lambda Scripts](#aws-lambda-scripts)
-    - [Setup - Running in a container](#setup---running-in-a-container)
-    - [Setup - running outside of a Container (Development only)](#running-outside-of-a-container-development-only)
-    - [Storing the container on AWS Elastic Container Registry (ECR)](#storing-the-container-on-aws-elastic-container-registry-ecr)
+  - [AWS Lambda Script](#aws-lambda-script)
+    - [Running the Project](#running-the-project)
+    - [Outside of a Container (Recommended) (Development Only)](#outside-of-a-container-recommended-development-only)
+    - [Running in a container](#running-in-a-container)
+  - [Deployment](#deployment)
+    - [Deployments with Concourse](#deployments-with-concourse)
+      - [Allowlisting your IP](#allowlisting-your-ip)
+      - [Setting up a pipeline](#setting-up-a-pipeline)
+      - [Prod deployment](#prod-deployment)
+      - [Triggering a pipeline](#triggering-a-pipeline)
+      - [Destroying a pipeline](#destroying-a-pipeline)
+    - [Manual Deployment](#manual-deployment)
+      - [Deployment Overview](#deployment-overview)
+      - [Storing the container on AWS Elastic Container Registry (ECR)](#storing-the-container-on-aws-elastic-container-registry-ecr)
     - [Deployment to AWS](#deployment-to-aws)
       - [Deployment Prerequisites](#deployment-prerequisites)
         - [Underlying AWS Infrastructure](#underlying-aws-infrastructure)
@@ -26,10 +36,6 @@ The Copilot dashboard can be found on the Copilot tab within the Digital Landsca
         - [Running the Terraform](#running-the-terraform)
       - [Updating the running service using Terraform](#updating-the-running-service-using-terraform)
       - [Destroy the Main Service Resources](#destroy-the-main-service-resources)
-  - [Deployments with Concourse](#deployments-with-concourse)
-    - [Allowlisting your IP](#allowlisting-your-ip)
-    - [Setting up a pipeline](#setting-up-a-pipeline)
-    - [Triggering a pipeline](#triggering-a-pipeline)
   - [Documentation](#documentation)
   - [Testing](#testing)
   - [Linting](#linting)
@@ -62,7 +68,7 @@ This repository has a Makefile for executing common commands. To view all comman
 make all
 ```
 
-## AWS Lambda Scripts
+## AWS Lambda Script
 
 This script:
 
@@ -72,7 +78,42 @@ This script:
 
 Further information can be found in [this project's documentation](/docs/index.md).
 
-### Setup - Running in a container
+### Running the Project
+
+### Outside of a Container (Recommended) (Development Only)
+
+To run the Lambda function outside of a container, we need to execute the `handler()` function.
+
+1. Uncomment the following at the bottom of `main.py`.
+
+   ```python
+   ...
+   # if __name__ == "__main__":
+   #     handler(None, None)
+   ...
+   ```
+
+   **Please Note:** If uncommenting the above in `main.py`, make sure you re-comment the code _before_ pushing back to GitHub.
+
+2. Export the required environment variables:
+
+    ```bash
+    export AWS_ACCESS_KEY_ID=<aws_access_key_id>
+    export AWS_SECRET_ACCESS_KEY=<aws_secret_access_key>
+    export AWS_DEFAULT_REGION=eu-west-2
+    export AWS_SECRET_NAME=<aws_secret_name>
+    export GITHUB_ORG=ONSDigital
+    export GITHUB_APP_CLIENT_ID=<github_app_client_id>
+    export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
+    ```
+
+3. Run the script.
+
+   ```bash
+   python3 src/main.py
+   ```
+
+### Running in a container
 
 1. Build a Docker Image
 
@@ -138,42 +179,77 @@ Further information can be found in [this project's documentation](/docs/index.m
    docker stop 3f7d64676b1a
    ```
 
-### Setup
+## Deployment
 
-Export the required environment variables:
+### Deployments with Concourse
 
-  ```bash
-  export AWS_ACCESS_KEY_ID=<aws_access_key_id>
-  export AWS_SECRET_ACCESS_KEY=<aws_secret_access_key>
-  export AWS_DEFAULT_REGION=eu-west-2
-  export AWS_SECRET_NAME=<aws_secret_name>
-  export GITHUB_ORG=ONSDigital
-  export GITHUB_APP_CLIENT_ID=<github_app_client_id>
-  export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
-  ```
+#### Allowlisting your IP
 
-The lambda can be run outside of a container for development purposes, or inside a container image to push to AWS ECR.
+To setup the deployment pipeline with concourse, you must first allowlist your IP address on the Concourse
+server. IP addresses are flushed everyday at 00:00 so this must be done at the beginning of every working day
+whenever the deployment pipeline needs to be used. Follow the instructions on the Confluence page (SDP Homepage > SDP Concourse > Concourse Login) to
+login. All our pipelines run on sdp-pipeline-prod, whereas sdp-pipeline-dev is the account used for
+changes to Concourse instance itself. Make sure to export all necessary environment variables from sdp-pipeline-prod (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN).
 
-#### Running outside of a Container (Development only)
+#### Setting up a pipeline
 
-To run the Lambda function outside of a container, we need to execute the `handler()` function.
+When setting up our pipelines, we use ecs-infra-user on sdp-dev to be able to interact with our infrastructure on AWS. The credentials for this are stored on
+AWS Secrets Manager so you do not need to set up anything yourself.
 
-1. Uncomment the following at the bottom of `main.py`.
+To set the pipeline, run the following script:
 
-   ```python
-   ...
-   # if __name__ == "__main__":
-   #     handler(None, None)
-   ...
-   ```
+```bash
+chmod u+x ./concourse/scripts/set_pipeline.sh
+./concourse/scripts/set_pipeline.sh
+```
 
-   **Please Note:** If uncommenting the above in `main.py`, make sure you re-comment the code _before_ pushing back to GitHub.
+Note that you only have to run chmod the first time running the script in order to give permissions.
+This script will set the branch and pipeline name to whatever branch you are currently on. It will also set the image tag on ECR to 7 characters of the current branch name if running on a branch other than main. For main, the ECR tag will be the latest release tag on the repository that has semantic versioning(vX.Y.Z).
 
-2. Run the script.
+The pipeline name itself will usually follow a pattern as follows: `github-copilot-usage-lambda-<branch-name>` for any non-main branch and `github-copilot-usage-lambda` for the main/master branch.
 
-   ```bash
-   python3 src/main.py
-   ```
+#### Prod deployment
+
+To deploy to prod, it is required that a Github Release is made on Github. The release is required to follow semantic versioning of vX.Y.Z.
+
+A manual trigger is to be made on the pipeline name `github-copilot-usage-lambda > deploy-after-github-release` job through the Concourse CI UI. This will create a github-create-tag resource that is required on the `github-copilot-usage-lambda > build-and-push-prod` job. Then the prod deployment job is also through a manual trigger ensuring that prod is only deployed using the latest GitHub release tag in the form of vX.Y.Z and is manually controlled.
+
+#### Triggering a pipeline
+
+Once the pipeline has been set, you can manually trigger a dev build on the Concourse UI, or run the following command for non-main branch deployment:
+
+```bash
+fly -t aws-sdp trigger-job -j github-copilot-usage-lambda-<branch-name>/build-and-push-dev
+```
+
+and for main branch deployment:
+
+```bash
+fly -t aws-sdp trigger-job -j github-copilot-usage-lambda/build-and-push-dev
+```
+
+#### Destroying a pipeline
+
+To destroy the pipeline, run the following command:
+
+```bash
+fly -t aws-sdp destroy-pipeline -p github-copilot-usage-lambda-<branch-name>
+```
+
+**It is unlikely that you will need to destroy a pipeline, but the command is here if needed.**
+
+**Note:** This will not destroy any resources created by Terraform. You must manually destroy these resources using Terraform.
+
+### Manual Deployment
+
+#### Deployment Overview
+
+This repository is designed to be hosted on AWS Lambda using a container image as the Lambda's definition.
+
+There are 2 parts to deployment:
+
+1. Updating the ECR Image.
+2. Updating the Lambda.
 
 #### Storing the container on AWS Elastic Container Registry (ECR)
 
@@ -298,7 +374,7 @@ If the application has been modified, the following can be performed to update t
 
   The reconfigure options ensures that the backend state is reconfigured to point to the appropriate S3 bucket.
 
-  **_Please Note:_** This step requires an **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY** to be loaded into the environment if not already in place. Please refer to [setup](#setup).
+  **_Please Note:_** This step requires an **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY** to be loaded into the environment if not already in place.
 
 - Refresh the local state to ensure it is in sync with the backend
 
@@ -336,48 +412,6 @@ terraform init -backend-config=env/dev/backend-dev.tfbackend -reconfigure
 terraform refresh -var-file=env/dev/dev.tfvars
 
 terraform destroy -var-file=env/dev/dev.tfvars
-```
-
-## Deployments with Concourse
-
-### Allowlisting your IP
-
-To setup the deployment pipeline with concourse, you must first allowlist your IP address on the Concourse
-server. IP addresses are flushed everyday at 00:00 so this must be done at the beginning of every working day whenever the deployment pipeline needs to be used.
-
-Follow the instructions on the Confluence page (SDP Homepage > SDP Concourse > Concourse Login) to
-login. All our pipelines run on `sdp-pipeline-prod`, whereas `sdp-pipeline-dev` is the account used for
-changes to Concourse instance itself. Make sure to export all necessary environment variables from `sdp-pipeline-prod` (**AWS_ACCESS_KEY_ID**, **AWS_SECRET_ACCESS_KEY**, **AWS_SESSION_TOKEN**).
-
-### Setting up a pipeline
-
-When setting up our pipelines, we use `ecs-infra-user` on `sdp-dev` to be able to interact with our infrastructure on AWS. The credentials for this are stored on AWS Secrets Manager so you do not need to set up anything yourself.
-
-To set the pipeline, run the following script:
-
-```bash
-chmod u+x ./concourse/scripts/set_pipeline.sh
-./concourse/scripts/set_pipeline.sh github-copilot-usage-lambda
-```
-
-Note that you only have to run chmod the first time running the script in order to give permissions.
-This script will set the branch and pipeline name to whatever branch you are currently on. It will also set the image tag on ECR to the current commit hash at the time of setting the pipeline.
-
-The pipeline name itself will usually follow a pattern as follows: `<repo-name>-<branch-name>`
-If you wish to set a pipeline for another branch without checking out, you can run the following:
-
-```bash
-./concourse/scripts/set_pipeline.sh github-copilot-usage-lambda <branch_name>
-```
-
-If the branch you are deploying is `main`, it will trigger a deployment to the `sdp-prod` environment. To set the ECR image tag, you must draft a GitHub release pointing to the latest release of the `main` branch that has a tag in the form of `vX.Y.Z.` Drafting up a release will automatically deploy the latest version of the `main` branch with the associated release tag, but you can also manually trigger a build through the Concourse UI or the terminal prompt.
-
-### Triggering a pipeline
-
-Once the pipeline has been set, you can manually trigger a build on the Concourse UI, or run the following command:
-
-```bash
-fly -t aws-sdp trigger-job -j github-copilot-usage-lambda-<branch-name>/build-and-push
 ```
 
 ## Documentation
