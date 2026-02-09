@@ -11,6 +11,7 @@ resources:
     source:
       uri: https://github.com/ONS-Innovation/github-copilot-usage-lambda
       username: ((github_access_token))
+      # kics-scan ignore-line
       password: x-oauth-basic # checkov:skip=CKV_SECRET_6:Checkov thinks this is a secret, but it is not
       branch: ((branch))
   - name: github-release
