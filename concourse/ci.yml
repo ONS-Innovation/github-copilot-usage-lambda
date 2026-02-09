@@ -1,6 +1,8 @@
----
-# Kics linting thinks that the "password" and "github_access_token" keys are secrets, but they are not.
-# These instances are ignored appropriately.
+resource_types:
+  - name: key-value
+    type: registry-image
+    source:
+      repository: gstack/keyval-resource
 
 resources:
   - name: resource-repo
@@ -9,76 +11,298 @@ resources:
     source:
       uri: https://github.com/ONS-Innovation/github-copilot-usage-lambda
       username: ((github_access_token))
-      # kics-scan ignore-line
       password: x-oauth-basic # checkov:skip=CKV_SECRET_6:Checkov thinks this is a secret, but it is not
       branch: ((branch))
+  - name: github-release
+    type: github-release
+    source:
+      owner: ONS-Innovation
+      repository: github-copilot-usage-lambda
+      access_token: ((github_access_token))
+  - name: github-release-tag
+    type: key-value
+    source:
+      file: tag-output/tag
+
+  # TODO: Setup shared ECR for Address Book Lambda. Sample below for reference.
+
+  # - name: images-to-shared-ecr-backend
+  #   type: registry-image
+  #   source:
+  #     repository: github-copilot-usage-lambda
+  #     aws_role_arn: arn:aws:iam::((aws_account_sdp_((env)))):role/sdp-concourse-((env))
+  #     aws_account_id: ((aws_account_ecr_shared_account))
+  #     aws_region: eu-west-2
+
+# Define the common terraform task as an anchor
+terraform-task: &terraform-task
+  task: terraform-deploy
+  privileged: true
+  config:
+    platform: linux
+    image_resource:
+      type: docker-image
+      source:
+        repository: hashicorp/terraform
+    inputs:
+      - name: resource-repo
+      - name: github-release-tag
+    params:
+      secrets: ((sdp_((env))_copilot_usage_lambda_secrets))
+      github_access_token: ((github_access_token))
+      env: ((env))
+      branch: ((branch))
+    run:
+      path: sh
+      args:
+        - -cx
+        - |
+          echo "DEBUG: Environment is ${env}"
+          echo "DEBUG: Tag is ${tag}"
+          export tag=$(cat github-release-tag/tag)
+          if [[ "$env" == "prod" ]] && [[ "$branch" != "main" && "$branch" != "master" ]]; then
+            echo "Not on main branch, skipping terraform for prod."
+            exit 0
+          fi
+          apk add --no-cache jq curl
+          if [[ "$env" == "prod" && ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Tag '$tag' is not in semantic versioning format (vX.Y.Z)"
+            exit 1
+          fi
+          chmod u+x ./resource-repo/concourse/scripts/terraform_infra.sh
+          ./resource-repo/concourse/scripts/terraform_infra.sh
+    timeout: 30m
+
+notify-azure-webhook-task: &notify-azure-webhook-task
+  config:
+    platform: linux
+    params:
+      secrets: ((sdp_azure_webhook_secrets))
+      branch: ((branch))
+      env: ((env))
+    image_resource:
+      type: registry-image
+      source:
+        repository: alpine
+        tag: latest
+    run:
+      path: sh
+      args:
+        - -euc
+        - |
+          if [ "$branch" != "main" ]; then
+            echo "Branch is '${branch}', skipping webhook notification."
+            exit 0
+          fi
+          apk add --no-cache curl jq
+
+          AZURE_CLIENT_ID=$(echo "$secrets" | jq -r .azure_client_id)
+          AZURE_CLIENT_SECRET=$(echo "$secrets" | jq -r .azure_client_secret)
+          AZURE_SCOPE=$(echo "$secrets" | jq -r .azure_scope)
+          AZURE_TENANT_ID=$(echo "$secrets" | jq -r .azure_tenant_id)
+          AZURE_WEBHOOK_URL=$(echo "$secrets" | jq -r .azure_webhook_url)
+          CHANNEL_ID=$(echo "$secrets" | jq -r .channel_id)
+
+          token_json="$(curl -sS -X POST \
+            "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "client_id=${AZURE_CLIENT_ID}" \
+            --data-urlencode "client_secret=${AZURE_CLIENT_SECRET}" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "scope=${AZURE_SCOPE}")"
+
+          access_token="$(printf '%s' "$token_json" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
+          if [ -z "$access_token" ]; then
+            echo "Failed to get access token. Response:"
+            echo "$token_json"
+            exit 1
+          fi
+
+          msg="status:🚨 Concourse failure<br>service: Copilot Usage Lambda<br> event: Pipeline failure in the ${env} environment."
+
+          payload="$(cat <<JSON
+          {"channel":"${CHANNEL_ID}","message":"${msg}"}
+          JSON
+          )"
+
+          curl -sS -X POST "$AZURE_WEBHOOK_URL" \
+            -H "Authorization: Bearer ${access_token}" \
+            -H "Content-Type: application/json" \
+            -d "$payload"
 
 jobs:
-  - name: build-and-push
+  - name: calculate-tag
     public: true
     plan:
+      - get: github-release
+        trigger: true
       - get: resource-repo
-        timeout: 5m
-      - task: build-image
-        privileged: true
+        trigger: false
+      - task: calculate-tag
         config:
           platform: linux
           image_resource:
             type: docker-image
             source:
-              repository: hashicorp/terraform
+              repository: alpine
           inputs:
             - name: resource-repo
+            - name: github-release
+          outputs:
+            - name: tag-output # Output directory for the tag
+            - name: built-images # Output directory for built images
           params:
-            aws_account_id: ((aws_account_sdp_((env))))
-            aws_role_arn: arn:aws:iam::((aws_account_sdp_((env)))):role/sdp-concourse-((env))
-            secrets: ((sdp_((env))_github_copilot_secrets))
-          run: # binary used to build the image
-            path: sh
-            args:
-              - -cx
-              - |
-                apk add --no-cache aws-cli podman jq iptables curl
-
-                if [[ "((env))" == "prod" ]]; then
-                  tag=$(curl "https://api.github.com/repos/ONS-Innovation/github-copilot-usage-lambda/releases" | jq -r '.[0].tag_name')
-                  export tag
-                else
-                  export tag=((tag))
-                fi
-                git rev-parse --abbrev-ref HEAD
-                chmod u+x ./resource-repo/concourse/scripts/assume_role.sh
-                chmod u+x ./resource-repo/concourse/scripts/build_image.sh
-                source ./resource-repo/concourse/scripts/assume_role.sh
-                ./resource-repo/concourse/scripts/build_image.sh
-        timeout: 10m
-      - task: terraform
-        privileged: true
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source: { repository: hashicorp/terraform }
-          inputs:
-            - name: resource-repo
-          params:
-            secrets: ((sdp_((env))_github_copilot_secrets))
-            # kics-scan ignore-line
-            github_access_token: ((github_access_token))
+            branch: ((branch))
           run:
             path: sh
             args:
               - -cx
               - |
-                apk add --no-cache jq curl
-
-                if [[ "((env))" == "prod" ]]; then
-                  tag=$(curl "https://api.github.com/repos/ONS-Innovation/github-copilot-usage-lambda/releases" | jq -r '.[0].tag_name')
-                  export tag
+                apk add --no-cache git
+                echo "Calculating tag for branch: ${branch}"
+                if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+                  # Get the latest tag that matches the format vX.Y.Z
+                  tag=$(git -C resource-repo tag --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)
+                  if [[ -z "$tag" ]]; then
+                    echo "No valid semantic versioning tags (vX.Y.Z) found. Cannot set pipeline."
+                    exit 1
+                  fi
                 else
-                  export tag=((tag))
+                  # Remove non-alphanumeric characters and take the first 7 characters
+                  tag=$(echo "${branch}" | tr -cd '[:alnum:]' | cut -c1-7)
                 fi
-                chmod u+x ./resource-repo/concourse/scripts/terraform_infra.sh
-                export env=((env))
-                ./resource-repo/concourse/scripts/terraform_infra.sh
-        timeout: 30m
+                echo "Calculated tag: ${tag}"
+                # Write the tag to a file for output
+                echo "${tag}" > tag-output/tag
+      - put: github-release-tag
+        params:
+          directory: tag-output
+
+  - name: deploy-after-github-release-dev
+    public: true
+    plan:
+      - do:
+          - get: github-release-tag
+            passed: [calculate-tag]
+            trigger: true
+          - get: resource-repo
+            trigger: false
+          - task: deploy-release
+            privileged: true
+            config:
+              platform: linux
+              image_resource:
+                type: docker-image
+                source:
+                  repository: hashicorp/terraform
+              inputs:
+                - name: resource-repo
+                - name: github-release-tag
+              outputs:
+                - name: built-images
+                - name: release-tag-output
+              params:
+                aws_account_id: ((aws_account_sdp_dev))
+                aws_role_arn: arn:aws:iam::((aws_account_sdp_dev)):role/sdp-concourse-dev
+                secrets: ((sdp_dev_copilot_usage_lambda_secrets))
+                env: dev
+                tag: github-release-tag/tag # Use the release tag from the resource
+                repo_name: ((repo_name))
+              run:
+                path: sh
+                args:
+                  - -cx
+                  - |
+                    apk add --no-cache aws-cli podman jq iptables curl
+                    export repo_name=((repo_name))
+                    export tag=$(cat github-release-tag/tag)
+                    # Write the tag to a file for output
+                    echo "${tag}" > release-tag-output/tag
+                    echo "Using tag: ${tag}"
+                    chmod u+x ./resource-repo/concourse/scripts/assume_role.sh
+                    chmod u+x ./resource-repo/concourse/scripts/build_image.sh
+                    source ./resource-repo/concourse/scripts/assume_role.sh
+                    ./resource-repo/concourse/scripts/build_image.sh
+            timeout: 15m
+
+          # TODO: Setup shared ECR for Address Book Lambda. Sample below for reference.
+          # - in_parallel:
+          #   - put: image-to-shared-ecr
+          #     inputs:
+          #       - built-images
+          #       - release-tag-output
+          #     params:
+          #       image: built-images/frontend.tar
+          #       additional_tags: release-tag-output/tag
+          - <<: *terraform-task
+            params:
+              github_access_token: ((github_access_token))
+              env: dev
+              secrets: ((sdp_dev_copilot_usage_lambda_secrets))
+        on_failure:
+          do:
+            - task: notify-azure-webhook
+              <<: *notify-azure-webhook-task
+              params:
+                env: dev
+
+  - name: release-build-and-push-prod
+    public: true
+    plan:
+      - do:
+          - get: resource-repo
+            passed: [deploy-after-github-release-dev]
+            trigger: false # Manual trigger only
+            timeout: 5m
+          - get: github-release-tag
+            passed: [deploy-after-github-release-dev]
+          - task: build-image
+            privileged: true
+            config:
+              platform: linux
+              image_resource:
+                type: docker-image
+                source:
+                  repository: hashicorp/terraform
+              inputs:
+                - name: resource-repo
+                - name: github-release-tag
+              outputs:
+                - name: built-images
+              params:
+                aws_account_id: ((aws_account_sdp_prod))
+                aws_role_arn: arn:aws:iam::((aws_account_sdp_prod)):role/sdp-concourse-prod
+                secrets: ((sdp_prod_copilot_usage_lambda_secrets))
+                env: prod
+                tag: github-release-tag/tag
+                repo_name: ((repo_name))
+                branch: ((branch))
+              run:
+                path: sh
+                args:
+                  - -cx
+                  - |
+                    if [[ "$branch" != "main" ]]; then
+                      echo "Not on main branch, skipping build."
+                      exit 0
+                    fi
+                    apk add --no-cache aws-cli podman jq iptables curl
+                    export repo_name=((repo_name))
+                    export tag=$(cat github-release-tag/tag)
+                    echo "Using release tag: ${tag}"
+                    chmod u+x ./resource-repo/concourse/scripts/assume_role.sh
+                    chmod u+x ./resource-repo/concourse/scripts/build_image.sh
+                    source ./resource-repo/concourse/scripts/assume_role.sh
+                    ./resource-repo/concourse/scripts/build_image.sh
+            timeout: 10m
+          - <<: *terraform-task
+            params:
+              github_access_token: ((github_access_token))
+              env: prod
+              secrets: ((sdp_prod_copilot_usage_lambda_secrets))
+        on_failure:
+          do:
+            - task: notify-azure-webhook
+              <<: *notify-azure-webhook-task
+              params:
+                env: prod
