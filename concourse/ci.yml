@@ -1,3 +1,7 @@
+---
+# Kics linting thinks that the "password" and "github_access_token" keys are secrets, but they are not.
+# These instances are ignored appropriately.
+
 resource_types:
   - name: key-value
     type: registry-image
@@ -19,6 +23,7 @@ resources:
     source:
       owner: ONS-Innovation
       repository: github-copilot-usage-lambda
+      # kics-scan ignore-line
       access_token: ((github_access_token))
   - name: github-release-tag
     type: key-value
@@ -50,6 +55,7 @@ terraform-task: &terraform-task
       - name: github-release-tag
     params:
       secrets: ((sdp_((env))_copilot_usage_lambda_secrets))
+      # kics-scan ignore-line
       github_access_token: ((github_access_token))
       env: ((env))
       branch: ((branch))
@@ -237,6 +243,7 @@ jobs:
           #       additional_tags: release-tag-output/tag
           - <<: *terraform-task
             params:
+              # kics-scan ignore-line
               github_access_token: ((github_access_token))
               env: dev
               secrets: ((sdp_dev_copilot_usage_lambda_secrets))
@@ -298,6 +305,7 @@ jobs:
             timeout: 10m
           - <<: *terraform-task
             params:
+              # kics-scan ignore-line
               github_access_token: ((github_access_token))
               env: prod
               secrets: ((sdp_prod_copilot_usage_lambda_secrets))
