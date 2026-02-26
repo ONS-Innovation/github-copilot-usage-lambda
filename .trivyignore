@@ -10,3 +10,10 @@ AVD-AWS-0104
 
 # Ignore wildcarded resource in IAM policy
 AVD-AWS-0057
+
+# MFA enforcement on IAM group is not applicable as group is used for
+# programmatic access via access keys, not console login
+AVD-AWS-0123
+
+# AWS-managed key encryption is sufficient and CMK not required
+AVD-AWS-0098
