@@ -38,6 +38,9 @@ DISABLE_LINTERS:
   # Disable due to poor configuration options
   - ACTION_ACTIONLINT
 
+  # Disable due to Prettier conflict
+  - MARKDOWN_MARKDOWN_TABLE_FORMATTER
+
 SHOW_ELAPSED_TIME: true
 
 FILEIO_REPORTER: false

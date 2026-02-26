@@ -46,6 +46,8 @@ resource "aws_lambda_function" "lambda_function" {
 
   role = aws_iam_role.lambda_function_role.arn
 
+  memory_size = 256
+
   environment {
     variables = {
       ENVIRONMENT          = var.env_name
