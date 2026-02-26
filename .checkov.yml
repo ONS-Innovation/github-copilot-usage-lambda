@@ -25,3 +25,12 @@ skip-check:
   # It is not needed here since our Lambda functions use container
   # images over uploading .zip files for layers.
   - CKV_AWS_272
+
+  # AWS-managed key encryption is sufficient and CMK not required for this service
+  - CKV_AWS_149 
+
+  # IAM user required for local development
+  - CKV_AWS_273 
+
+  # Key rotation is already provisioned by external module
+  - CKV2_AWS_57 
