@@ -27,10 +27,10 @@ skip-check:
   - CKV_AWS_272
 
   # AWS-managed key encryption is sufficient and CMK not required for this service
-  - CKV_AWS_149 
+  - CKV_AWS_149
 
   # IAM user required for local development
-  - CKV_AWS_273 
+  - CKV_AWS_273
 
   # Key rotation is already provisioned by external module
-  - CKV2_AWS_57 
+  - CKV2_AWS_57

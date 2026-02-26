@@ -11,7 +11,7 @@ The `config.json` file contains the following:
   "features": {
     "show_log_locally": false,
     "write_data_locally": false
-  },
+  }
 }
 ```
 
@@ -42,7 +42,7 @@ When testing locally, you might set the `config.json` file as follows:
   "features": {
     "show_log_locally": true,
     "write_data_locally": true
-  },
+  }
 }
 ```
 
@@ -55,7 +55,7 @@ When deploying to AWS, the `config.json` file should be set as follows:
   "features": {
     "show_log_locally": false,
     "write_data_locally": false
-  },
+  }
 }
 ```
 
