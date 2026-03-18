@@ -5,6 +5,7 @@ gathering, storing, and updating GitHub Copilot usage metrics and team history
 for an organization. Data is retrieved from the GitHub API and stored in S3.
 """
 
+from itertools import count
 import json
 import logging
 import os
@@ -30,7 +31,7 @@ account = os.getenv("AWS_ACCOUNT_NAME")
 
 # AWS Bucket Path
 BUCKET_NAME = f"{account}-copilot-usage-dashboard"
-OBJECT_NAME = "historic_usage_data.json"
+OBJECT_NAME = "org_history.json"
 
 logger = logging.getLogger()
 
@@ -131,31 +132,30 @@ def get_and_update_historic_usage(
     """
     # Get the usage data
     api_response = gh.get(f"/orgs/{org}/copilot/metrics/reports/organization-28-day/latest").json()
-    usage_data = json.loads(urllib.request.urlopen(api_response["download_links"][0]).read())
-
+    usage_data = json.loads(urllib.request.urlopen(api_response["download_links"][0]).read())["day_totals"]
+    
     logger.info("Usage data retrieved")
 
-    # try:
-    #     response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
-    #     historic_usage = json.loads(response["Body"].read().decode("utf-8"))
-    # except ClientError as e:
-    #     logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
-
-    #     historic_usage = []
-
-    historic_usage = {"day_totals": []}
+    try:
+        response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
+        historic_usage = json.loads(response["Body"].read().decode("utf-8"))
+    except ClientError as e:
+        logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
+        historic_usage = []
 
     dates_added = []
+    count = 0
 
-    # If historic data exists, append new usage data to historic_usage_data.json
-    if historic_usage:
-        for day in usage_data["day_totals"]:
-            if not any(d["day"] == day["day"] for d in historic_usage["day_totals"]):
-                historic_usage["day_totals"].append(day)
+    for day in usage_data:
+        if not any(d["day"] == day["day"] for d in historic_usage):
+            historic_usage.append(day)
+            dates_added.append(day["day"])
+            logger.info("Added data for day %s", day["day"])
+            count += 1
+    
+    logger.info("Total new days added: %d", count)
 
-                dates_added.append(day["day"])
-
-    sorted_historic_usage = sorted(historic_usage["day_totals"], key=lambda x: x["day"])
+    sorted_historic_usage = sorted(historic_usage, key=lambda x: x["day"])
 
     logger.info(
         "New usage data added to %s",
