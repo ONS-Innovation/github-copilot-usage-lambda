@@ -14,6 +14,7 @@ import boto3
 import github_api_toolkit
 from botocore.exceptions import ClientError
 from requests import Response
+import urllib.request
 
 # GitHub Organisation
 org = os.getenv("GITHUB_ORG")
@@ -129,27 +130,32 @@ def get_and_update_historic_usage(
         tuple: A tuple containing the updated historic usage data and a list of dates added.
     """
     # Get the usage data
-    usage_data = gh.get(f"/orgs/{org}/copilot/metrics")
-    usage_data = usage_data.json()
+    api_response = gh.get(f"/orgs/{org}/copilot/metrics/reports/organization-28-day/latest").json()
+    usage_data = json.loads(urllib.request.urlopen(api_response["download_links"][0]).read())
 
     logger.info("Usage data retrieved")
 
-    try:
-        response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
-        historic_usage = json.loads(response["Body"].read().decode("utf-8"))
-    except ClientError as e:
-        logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
+    # try:
+    #     response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
+    #     historic_usage = json.loads(response["Body"].read().decode("utf-8"))
+    # except ClientError as e:
+    #     logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
 
-        historic_usage = []
+    #     historic_usage = []
+
+    historic_usage = {"day_totals": []}
 
     dates_added = []
 
-    # Append the new usage data to the historic_usage_data.json
-    for date in usage_data:
-        if not any(d["date"] == date["date"] for d in historic_usage):
-            historic_usage.append(date)
+    # If historic data exists, append new usage data to historic_usage_data.json
+    if historic_usage:
+        for day in usage_data["day_totals"]:
+            if not any(d["day"] == day["day"] for d in historic_usage["day_totals"]):
+                historic_usage["day_totals"].append(day)
 
-            dates_added.append(date["date"])
+                dates_added.append(day["day"])
+
+    sorted_historic_usage = sorted(historic_usage["day_totals"], key=lambda x: x["day"])
 
     logger.info(
         "New usage data added to %s",
@@ -159,15 +165,15 @@ def get_and_update_historic_usage(
 
     if not write_data_locally:
         # Write the updated historic_usage to historic_usage_data.json
-        update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, historic_usage)
+        update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, sorted_historic_usage)
     else:
         local_path = f"output/{OBJECT_NAME}"
         os.makedirs("output", exist_ok=True)
         with open(local_path, "w", encoding="utf-8") as f:
-            json.dump(historic_usage, f, indent=4)
+            json.dump(sorted_historic_usage, f, indent=4)
         logger.info("Historic usage data written locally to %s (S3 skipped)", local_path)
 
-    return historic_usage, dates_added
+    return sorted_historic_usage, dates_added
 
 
 def get_and_update_copilot_teams(
