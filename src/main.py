@@ -406,6 +406,14 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
         logging.basicConfig(
             filename="debug.log",
             filemode="w",
+            format="%(asctime)s %(levelname)s %(message)s",
+
+        )
+    else:
+        # Ensure INFO logs show in the terminal when not logging to a file
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(message)s",
         )
 
     # Create an S3 client
@@ -485,5 +493,5 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
 # # Dev Only
 # # Uncomment the following line to run the script locally
-# if __name__ == "__main__":
-#     handler(None, None)
+if __name__ == "__main__":
+    handler(None, None)
