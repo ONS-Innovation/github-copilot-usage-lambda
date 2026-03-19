@@ -1,6 +1,7 @@
 import json
 import os
 from unittest.mock import MagicMock, call, patch
+from io import BytesIO
 
 from botocore.exceptions import ClientError
 from requests import Response
@@ -362,39 +363,61 @@ class TestGetAndUpdateHistoricUsage:
     def test_get_and_update_historic_usage_success(self):
         s3 = MagicMock()
         gh = MagicMock()
-        # Mock usage data returned from GitHub API
-        usage_data = [
-            {"date": "2024-01-01", "usage": 10},
-            {"date": "2024-01-02", "usage": 20},
-        ]
-        gh.get.return_value.json.return_value = usage_data
 
-        # Mock S3 get_object returns existing historic usage with one date
-        existing_usage = [{"date": "2024-01-01", "usage": 10}]
-        s3.get_object.return_value = {
-            "Body": MagicMock(
-                read=MagicMock(return_value=json.dumps(existing_usage).encode("utf-8"))
-            )
+        # Mock API response
+        api_response = {
+            "download_links": [
+                "https://example.com/org_history_api_response.json"
+            ]
+            # There are other fields in the API response, but we don't need them for this test
         }
 
-        result, dates_added = get_and_update_historic_usage(s3, gh, False)
+        # Mock usage data returned from GitHub API 
+        fetched_usage_data = {"day_totals": [
+            {"day": "2024-01-01", "usage": 10},
+            {"day": "2024-01-02", "usage": 20},
+        ]}
+        
+        gh.get.return_value.json.return_value = api_response
+
+        # Mock S3 get_object returns existing historic usage with one date
+        existing_usage = [{"day": "2024-01-01", "usage": 10}]
+        s3.get_object.return_value = {
+            "Body": BytesIO(json.dumps(existing_usage).encode("utf-8"))
+        }
+
+        # Mock urllib.request.urlopen returns usage data from download_links
+        # We always patch dependencies imported inside the function we're testing.
+        # Test environment initialisation ends here.
+        with patch("src.main.urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = BytesIO(json.dumps(fetched_usage_data).encode("utf-8"))
+            result, dates_added = get_and_update_historic_usage(s3, gh, False)
+
         assert result == [
-            {"date": "2024-01-01", "usage": 10},
-            {"date": "2024-01-02", "usage": 20},
+            {"day": "2024-01-01", "usage": 10},
+            {"day": "2024-01-02", "usage": 20},
         ]
         assert dates_added == ["2024-01-02"]
         s3.get_object.assert_called_once()
         s3.put_object.assert_called_once()
         args, kwargs = s3.put_object.call_args
         assert kwargs["Bucket"].endswith("copilot-usage-dashboard")
-        assert kwargs["Key"] == "historic_usage_data.json"
+        assert kwargs["Key"] == "org_history.json"
         assert json.loads(kwargs["Body"].decode("utf-8")) == result
 
     def test_get_and_update_historic_usage_no_existing_data(self, caplog):
         s3 = MagicMock()
         gh = MagicMock()
-        usage_data = [{"date": "2024-01-01", "usage": 10}]
-        gh.get.return_value.json.return_value = usage_data
+        api_response = {
+            "download_links": [
+                "https://example.com/org_history_api_response.json"
+            ]
+        }
+        fetched_usage_data = {"day_totals": [
+            {"day": "2024-01-01", "usage": 10},
+        ]}
+
+        gh.get.return_value.json.return_value = api_response
 
         # S3 get_object raises ClientError
         s3.get_object.side_effect = ClientError(
@@ -402,39 +425,58 @@ class TestGetAndUpdateHistoricUsage:
             operation_name="GetObject",
         )
 
-        result, dates_added = get_and_update_historic_usage(s3, gh, False)
-        assert result == [{"date": "2024-01-01", "usage": 10}]
+        with patch("src.main.urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = BytesIO(json.dumps(fetched_usage_data).encode("utf-8"))
+            result, dates_added = get_and_update_historic_usage(s3, gh, False)
+
+        assert result == [{"day": "2024-01-01", "usage": 10}]
         assert dates_added == ["2024-01-01"]
         s3.put_object.assert_called_once()
         assert any(
-            "Error getting historic_usage_data.json" in record.getMessage()
+            "Error getting org_history.json" in record.getMessage()
             for record in caplog.records
         )
 
     def test_get_and_update_historic_usage_no_new_dates(self):
         s3 = MagicMock()
         gh = MagicMock()
-        usage_data = [{"date": "2024-01-01", "usage": 10}]
-        gh.get.return_value.json.return_value = usage_data
+        api_response = {
+            "download_links": [
+                "https://example.com/org_history_api_response.json"
+            ]
+        }
+        fetched_usage_data = {"day_totals": [
+            {"day": "2024-01-01", "usage": 10},
+        ]}
+        
+        gh.get.return_value.json.return_value = api_response
 
         # S3 get_object returns same date as usage_data
-        existing_usage = [{"date": "2024-01-01", "usage": 10}]
+        existing_usage = [{"day": "2024-01-01", "usage": 10}]
         s3.get_object.return_value = {
-            "Body": MagicMock(
-                read=MagicMock(return_value=json.dumps(existing_usage).encode("utf-8"))
-            )
+            "Body": BytesIO(json.dumps(existing_usage).encode("utf-8"))
         }
+        with patch("src.main.urllib.request.urlopen") as mock_urlopen:
+            mock_urlopen.return_value = BytesIO(json.dumps(fetched_usage_data).encode("utf-8"))
+            result, dates_added = get_and_update_historic_usage(s3, gh, False)
 
-        result, dates_added = get_and_update_historic_usage(s3, gh, False)
-        assert result == [{"date": "2024-01-01", "usage": 10}]
+        assert result == [{"day": "2024-01-01", "usage": 10}]
         assert dates_added == []
         s3.put_object.assert_called_once()
 
     def test_write_data_locally_creates_file(self, tmp_path):
         s3 = MagicMock()
         gh = MagicMock()
-        usage_data = [{"date": "2024-01-01", "usage": 10}]
-        gh.get.return_value.json.return_value = usage_data
+        api_response = {
+            "download_links": [
+                "https://example.com/org_history_api_response.json"
+            ]
+        }
+        fetched_usage_data = {"day_totals": [
+            {"day": "2024-01-01", "usage": 10},
+        ]}
+        
+        gh.get.return_value.json.return_value = api_response
 
         # S3 get_object raises ClientError
         s3.get_object.side_effect = ClientError(
@@ -444,13 +486,15 @@ class TestGetAndUpdateHistoricUsage:
 
         # Patch os.makedirs and open to use tmp_path
         with patch("src.main.os.makedirs") as mock_makedirs, \
-                patch("src.main.open", create=True) as mock_open:
-            result, dates_added = get_and_update_historic_usage(s3, gh, True)
-            assert result == [{"date": "2024-01-01", "usage": 10}]
-            assert dates_added == ["2024-01-01"]
-            mock_makedirs.assert_called_once_with("output", exist_ok=True)
-            mock_open.assert_called_once()
-            s3.put_object.assert_not_called()
+                patch("src.main.open", create=True) as mock_open, \
+                    patch("src.main.urllib.request.urlopen") as mock_urlopen:
+                        mock_urlopen.return_value = BytesIO(json.dumps(fetched_usage_data).encode("utf-8"))
+                        result, dates_added = get_and_update_historic_usage(s3, gh, True)
+                        assert result == [{"day": "2024-01-01", "usage": 10}]
+                        assert dates_added == ["2024-01-01"]
+                        mock_makedirs.assert_called_once_with("output", exist_ok=True)
+                        mock_open.assert_called_once()
+                        s3.put_object.assert_not_called()
 
 
 class TestCreateDictionary:
