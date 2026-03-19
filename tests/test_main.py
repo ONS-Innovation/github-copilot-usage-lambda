@@ -60,10 +60,8 @@ class TestHandler:
     @patch("src.main.github_api_toolkit.get_token_as_installation")
     @patch("src.main.github_api_toolkit.github_interface")
     @patch("src.main.get_and_update_historic_usage")
-    @patch("src.main.update_s3_object")
     def test_handler_success(
         self,
-        mock_update_s3_object,
         mock_get_and_update_historic_usage,
         mock_github_interface,
         mock_get_token_as_installation,
@@ -87,13 +85,6 @@ class TestHandler:
         secret_region = "eu-west-1"
         secret_name = "test-secret"
 
-        # S3 get_object for teams_history.json returns existing history
-        mock_s3.get_object.return_value = {
-            "Body": MagicMock(
-                read=MagicMock(return_value=b'[{"team": {"name": "team1"}, "data": []}]')
-            )
-        }
-
         result = handler({}, MagicMock())
         assert result == "Github Data logging is now complete."
         mock_boto3_session.assert_called_once()
@@ -101,8 +92,8 @@ class TestHandler:
         call("secretsmanager", region_name=secret_region) in mock_session.client.call_args_list
         mock_secret_manager.get_secret_value.assert_called_once_with(SecretId=secret_name)
         mock_get_token_as_installation.assert_called_once()
-        mock_github_interface.assert_called_once()
-        mock_get_and_update_historic_usage.assert_called_once()
+        mock_github_interface.assert_called_once_with("token")
+        mock_get_and_update_historic_usage.assert_called_once_with(mock_s3, mock_gh, False)
 
     @patch("src.main.boto3.Session")
     @patch("src.main.github_api_toolkit.get_token_as_installation")
