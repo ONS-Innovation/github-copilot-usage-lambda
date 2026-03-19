@@ -60,8 +60,6 @@ class TestHandler:
     @patch("src.main.github_api_toolkit.get_token_as_installation")
     @patch("src.main.github_api_toolkit.github_interface")
     @patch("src.main.get_and_update_historic_usage")
-    @patch("src.main.get_and_update_copilot_teams")
-    @patch("src.main.create_dictionary")
     @patch("src.main.update_s3_object")
     def test_handler_success(
         self,
