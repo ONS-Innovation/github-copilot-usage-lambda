@@ -1,5 +1,7 @@
 # Copilot Team Usage
 
+Note: This functionality has been removed as of 19th March 2026 as the endpoint used to fetch metrics for team usage is being sunsetted. However, it may be restored via alternative methods in the future.
+
 ## Overview
 
 This section of the project leverages GitHub OAuth2 for user authentication, granting access to essential data.
