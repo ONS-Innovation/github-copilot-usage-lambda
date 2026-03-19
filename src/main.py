@@ -5,17 +5,15 @@ gathering, storing, and updating GitHub Copilot usage metrics and team history
 for an organization. Data is retrieved from the GitHub API and stored in S3.
 """
 
-from itertools import count
 import json
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 import boto3
 import github_api_toolkit
+import requests
 from botocore.exceptions import ClientError
-from requests import Response
-import urllib.request
 
 # GitHub Organisation
 org = os.getenv("GITHUB_ORG")
@@ -74,8 +72,8 @@ def get_and_update_historic_usage(
     """
     # Get the usage data
     api_response = gh.get(f"/orgs/{org}/copilot/metrics/reports/organization-28-day/latest").json()
-    usage_data = json.loads(urllib.request.urlopen(api_response["download_links"][0]).read())["day_totals"]
-    
+    usage_data = requests.get(api_response["download_links"][0], timeout=30).json()["day_totals"]
+
     logger.info("Usage data retrieved")
 
     try:
@@ -86,24 +84,14 @@ def get_and_update_historic_usage(
         historic_usage = []
 
     dates_added = []
-    count = 0
 
     for day in usage_data:
         if not any(d["day"] == day["day"] for d in historic_usage):
             historic_usage.append(day)
             dates_added.append(day["day"])
             logger.info("Added data for day %s", day["day"])
-            count += 1
-    
-    logger.info("Total new days added: %d", count)
 
     sorted_historic_usage = sorted(historic_usage, key=lambda x: x["day"])
-
-    logger.info(
-        "New usage data added to %s",
-        OBJECT_NAME,
-        extra={"no_days_added": len(dates_added), "dates_added": dates_added},
-    )
 
     if not write_data_locally:
         # Write the updated historic_usage to historic_usage_data.json
@@ -114,6 +102,13 @@ def get_and_update_historic_usage(
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(sorted_historic_usage, f, indent=4)
         logger.info("Historic usage data written locally to %s (S3 skipped)", local_path)
+
+    logger.info(
+        "Usage data written to %s: %d days added (%s)",
+        OBJECT_NAME,
+        len(dates_added),
+        dates_added,
+    )
 
     return sorted_historic_usage, dates_added
 
@@ -232,7 +227,6 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
             filename="debug.log",
             filemode="w",
             format="%(asctime)s %(levelname)s %(message)s",
-
         )
     else:
         # Ensure INFO logs show in the terminal when not logging to a file
@@ -286,5 +280,5 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
 # Dev Only
 # Uncomment the following line to run the script locally
-# if __name__ == "__main__":
-#     handler(None, None)
+if __name__ == "__main__":
+    handler(None, None)
