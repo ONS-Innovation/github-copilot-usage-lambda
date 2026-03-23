@@ -220,16 +220,6 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
     # Toggle local logging
     if show_log_locally:
-        # This is a nightmare to test as it's really hard to get to.
-        # At some point we should look to make a wrapper for logging
-        # so it can be tested more easily.
-        logging.basicConfig(
-            filename="debug.log",
-            filemode="w",
-            format="%(asctime)s %(levelname)s %(message)s",
-        )
-    else:
-        # Ensure INFO logs show in the terminal when not logging to a file
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(message)s",
