@@ -12,7 +12,7 @@ from typing import Any
 
 import boto3
 import github_api_toolkit
-import requests
+from requests import get
 from botocore.exceptions import ClientError
 
 # GitHub Organisation
@@ -78,7 +78,7 @@ def get_and_update_historic_usage(
         logger.error("Error getting usage data: %s", api_response)
         return [], []
 
-    usage_data = requests.get(api_response_json["download_links"][0], timeout=30).json()["day_totals"]
+    usage_data = get(api_response_json["download_links"][0], timeout=30).json()["day_totals"]
     logger.info("Usage data retrieved")
 
     # Get the existing historic usage data from S3
