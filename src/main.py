@@ -29,7 +29,7 @@ account = os.getenv("AWS_ACCOUNT_NAME")
 
 # AWS Bucket Path
 BUCKET_NAME = f"{account}-copilot-usage-dashboard"
-OBJECT_NAME = "org_history.json"
+OBJECT_NAME = "organisation_history.json"
 
 logger = logging.getLogger()
 
