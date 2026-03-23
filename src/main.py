@@ -279,5 +279,5 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
 # Dev Only
 # Uncomment the following line to run the script locally
-if __name__ == "__main__":
-    handler(None, None)
+# if __name__ == "__main__":
+#     handler(None, None)
