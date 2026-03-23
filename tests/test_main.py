@@ -20,7 +20,7 @@ from src.main import (
 
 )
 
-# Mock API response
+# Mock GitHub API response
 api_response = {
     "download_links": [
         "https://example.com/organisation_history_api_response.json"
@@ -28,7 +28,7 @@ api_response = {
     # There are other fields in the API response, but we don't need them for this test
 }
 
-# Mock usage data returned from GitHub API 
+# Mock usage data fetched from download_links key in the API response
 fetched_usage_data = {"day_totals": [
     {"day": "2024-01-01", "usage": 10},
     {"day": "2024-01-02", "usage": 20},
