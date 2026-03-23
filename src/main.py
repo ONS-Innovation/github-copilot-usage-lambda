@@ -222,12 +222,12 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
     features = get_dict_value(config, "features")
 
-    show_log_locally = get_dict_value(features, "show_log_locally")
+    show_logs_in_terminal = get_dict_value(features, "show_logs_in_terminal")
 
     write_data_locally = get_dict_value(features, "write_data_locally")
 
     # Toggle local logging
-    if show_log_locally:
+    if show_logs_in_terminal:
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(message)s",
