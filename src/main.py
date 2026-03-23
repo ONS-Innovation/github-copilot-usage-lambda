@@ -91,23 +91,24 @@ def get_and_update_historic_usage(
 
     # Append the new usage data to the existing historic usage data
     dates_added = []
+    new_usage_data = []
 
     for day in usage_data:
         if not any(d["day"] == day["day"] for d in historic_usage):
-            historic_usage.append(day)
+            new_usage_data.append(day)
             dates_added.append(day["day"])
             logger.info("Added data for day %s", day["day"])
 
-    sorted_historic_usage = sorted(historic_usage, key=lambda x: x["day"])
+    historic_usage.extend(sorted(new_usage_data, key=lambda x: x["day"]))
 
     if not write_data_locally:
         # Write the updated historic_usage to organisation_history.json
-        update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, sorted_historic_usage)
+        update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, historic_usage)
     else:
         local_path = f"output/{OBJECT_NAME}"
         os.makedirs("output", exist_ok=True)
         with open(local_path, "w", encoding="utf-8") as f:
-            json.dump(sorted_historic_usage, f, indent=4)
+            json.dump(historic_usage, f, indent=4)
         logger.info("Historic usage data written locally to %s (S3 skipped)", local_path)
 
     logger.info(
@@ -117,7 +118,7 @@ def get_and_update_historic_usage(
         dates_added,
     )
 
-    return sorted_historic_usage, dates_added
+    return historic_usage, dates_added
 
 
 def update_s3_object(
@@ -277,5 +278,5 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
 
 # Dev Only
 # Uncomment the following line to run the script locally
-# if __name__ == "__main__":
-#     handler(None, None)
+if __name__ == "__main__":
+    handler(None, None)
