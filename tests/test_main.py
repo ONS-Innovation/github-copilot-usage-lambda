@@ -128,7 +128,7 @@ class TestGetAndUpdateHistoricUsage:
         # Mock API response
         api_response = {
             "download_links": [
-                "https://example.com/org_history_api_response.json"
+                "https://example.com/organisation_history_api_response.json"
             ]
             # There are other fields in the API response, but we don't need them for this test
         }
@@ -163,7 +163,7 @@ class TestGetAndUpdateHistoricUsage:
         s3.put_object.assert_called_once()
         args, kwargs = s3.put_object.call_args
         assert kwargs["Bucket"].endswith("copilot-usage-dashboard")
-        assert kwargs["Key"] == "org_history.json"
+        assert kwargs["Key"] == "organisation_history.json"
         assert json.loads(kwargs["Body"].decode("utf-8")) == result
 
     def test_get_and_update_historic_usage_no_existing_data(self, caplog):
@@ -171,7 +171,7 @@ class TestGetAndUpdateHistoricUsage:
         gh = MagicMock()
         api_response = {
             "download_links": [
-                "https://example.com/org_history_api_response.json"
+                "https://example.com/organisation_history_api_response.json"
             ]
         }
         fetched_usage_data = {"day_totals": [
@@ -194,7 +194,7 @@ class TestGetAndUpdateHistoricUsage:
         assert dates_added == ["2024-01-01"]
         s3.put_object.assert_called_once()
         assert any(
-            "Error getting org_history.json" in record.getMessage()
+            "Error getting organisation_history.json" in record.getMessage()
             for record in caplog.records
         )
 
@@ -203,7 +203,7 @@ class TestGetAndUpdateHistoricUsage:
         gh = MagicMock()
         api_response = {
             "download_links": [
-                "https://example.com/org_history_api_response.json"
+                "https://example.com/organisation_history_api_response.json"
             ]
         }
         fetched_usage_data = {"day_totals": [
@@ -230,7 +230,7 @@ class TestGetAndUpdateHistoricUsage:
         gh = MagicMock()
         api_response = {
             "download_links": [
-                "https://example.com/org_history_api_response.json"
+                "https://example.com/organisation_history_api_response.json"
             ]
         }
         fetched_usage_data = {"day_totals": [
