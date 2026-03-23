@@ -38,7 +38,3 @@ This component is an imported library which is shared across multiple GitHub too
 ### Historic Usage Data
 
 This section gathers data from AWS S3. The Copilot usage endpoints have a limitation where they only return the last 28 days worth of information. To get around this, the project has an AWS Lambda function which runs weekly and stores data within an S3 bucket.
-
-### Copilot Teams Data (Deprecated - functionality removed but may be restored via alternative methods)
-
-This section gathers a list of teams within the organisation with Copilot data and updates the S3 bucket accordingly. This allows all relevant teams to be displayed within the dashboard.
