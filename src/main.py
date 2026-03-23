@@ -222,7 +222,7 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
     config = get_config_file("./config/config.json")
 
     features = get_dict_value(config, "features")
- 
+
     write_data_locally = get_dict_value(features, "write_data_locally")
 
     logging.basicConfig(
