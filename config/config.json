@@ -1,6 +1,5 @@
 {
   "features": {
-    "show_logs_in_terminal": false,
     "write_data_locally": false
   }
 }

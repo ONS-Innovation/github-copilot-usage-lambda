@@ -222,17 +222,13 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
     config = get_config_file("./config/config.json")
 
     features = get_dict_value(config, "features")
-
-    show_logs_in_terminal = get_dict_value(features, "show_logs_in_terminal")
-
+ 
     write_data_locally = get_dict_value(features, "write_data_locally")
 
-    # Toggle local logging
-    if show_logs_in_terminal:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s %(message)s",
-        )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
 
     # Create an S3 client
     session = boto3.Session()
