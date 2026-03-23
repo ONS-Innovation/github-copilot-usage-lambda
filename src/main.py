@@ -92,9 +92,10 @@ def get_and_update_historic_usage(
     # Append the new usage data to the existing historic usage data
     dates_added = []
     new_usage_data = []
+    historic_usage_set = {d["day"] for d in historic_usage}
 
     for day in usage_data:
-        if not any(d["day"] == day["day"] for d in historic_usage):
+        if not day["day"] in historic_usage_set:
             new_usage_data.append(day)
             dates_added.append(day["day"])
             logger.info("Added data for day %s", day["day"])
