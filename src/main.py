@@ -12,8 +12,8 @@ from typing import Any
 
 import boto3
 import github_api_toolkit
-from requests import get
 from botocore.exceptions import ClientError
+from requests import get
 
 # GitHub Organisation
 org = os.getenv("GITHUB_ORG")
@@ -74,7 +74,7 @@ def get_and_update_historic_usage(
     try:
         api_response = gh.get(f"/orgs/{org}/copilot/metrics/reports/organization-28-day/latest")
         api_response_json = api_response.json()
-    except AttributeError as e: 
+    except AttributeError:
         logger.error("Error getting usage data: %s", api_response)
         return [], []
 
@@ -95,7 +95,7 @@ def get_and_update_historic_usage(
     historic_usage_set = {d["day"] for d in historic_usage}
 
     for day in usage_data:
-        if not day["day"] in historic_usage_set:
+        if day["day"] not in historic_usage_set:
             new_usage_data.append(day)
             dates_added.append(day["day"])
             logger.info("Added data for day %s", day["day"])
