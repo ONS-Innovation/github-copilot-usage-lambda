@@ -71,11 +71,17 @@ def get_and_update_historic_usage(
         tuple: A tuple containing the updated historic usage data and a list of dates added.
     """
     # Get the usage data
-    api_response = gh.get(f"/orgs/{org}/copilot/metrics/reports/organization-28-day/latest").json()
-    usage_data = requests.get(api_response["download_links"][0], timeout=30).json()["day_totals"]
+    try:
+        api_response = gh.get(f"/orgs/{org}/copilot/metrics/reports/organization-28-day/latest")
+        api_response_json = api_response.json()
+    except AttributeError as e: 
+        logger.error("Error getting usage data: %s", api_response)
+        return [], []
 
+    usage_data = requests.get(api_response_json["download_links"][0], timeout=30).json()["day_totals"]
     logger.info("Usage data retrieved")
 
+    # Get the existing historic usage data from S3
     try:
         response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
         historic_usage = json.loads(response["Body"].read().decode("utf-8"))
@@ -83,6 +89,7 @@ def get_and_update_historic_usage(
         logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
         historic_usage = []
 
+    # Append the new usage data to the existing historic usage data
     dates_added = []
 
     for day in usage_data:
@@ -94,7 +101,7 @@ def get_and_update_historic_usage(
     sorted_historic_usage = sorted(historic_usage, key=lambda x: x["day"])
 
     if not write_data_locally:
-        # Write the updated historic_usage to historic_usage_data.json
+        # Write the updated historic_usage to organisation_history.json
         update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, sorted_historic_usage)
     else:
         local_path = f"output/{OBJECT_NAME}"
@@ -255,7 +262,7 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
     historic_usage, dates_added = get_and_update_historic_usage(s3, gh, write_data_locally)
 
     logger.info(
-        "Process complete",
+        "Process finished",
         extra={
             "bucket": BUCKET_NAME,
             "no_days_added": len(dates_added),
