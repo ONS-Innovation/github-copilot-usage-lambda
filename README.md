@@ -103,7 +103,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
   export AWS_PROFILE=github-copilot-usage-lambda
   ```
 
-  This allows you to assume the AWS IAM role for service, enabling the most secure development experience. This also means you will have limited permissions until you exit out of the profile.
+  This allows you to assume the AWS IAM role for the service, enabling the most secure development experience. This also means you will have limited permissions until you exit out of the profile.
 
   **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine.
 
@@ -149,14 +149,20 @@ To run the Lambda function outside of a container, we need to execute the `handl
    | --------------------------- | ------ | ------------ | -------------- | ----- |
    | copilot-usage-lambda-script | latest | 0bbe73d9256f | 11 seconds ago | 224MB |
 
-3. Run the image locally mapping local host port (9000) to container port (8080) and passing in AWS credentials to download a .pem file from the AWS Secrets Manager to the running container. These credentials will also be used to upload and download `historic_usage_data.json` to and from S3.
+3. Sign in with AWS SSO:
 
-   The credentials used in the below command are for a user in AWS that has permissions to retrieve secrets from AWS Secrets Manager and upload and download files from AWS S3.
+   ```bash
+   aws sso login
+   ```
+
+   **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine. This is essential as the `~/.aws` directory is mounted to the container, so it can use the SSO session for AWS authentication.
+
+4. Run the image locally mapping local host port (9000) to container port (8080).
 
    ```bash
    docker run --platform linux/amd64 -p 9000:8080 \
-   -e AWS_ACCESS_KEY_ID=<aws_access_key_id> \
-   -e AWS_SECRET_ACCESS_KEY=<aws_secret_access_key> \
+   -v ~/.aws:/root/.aws \
+   -e AWS_PROFILE=github-copilot-usage-lambda \
    -e AWS_DEFAULT_REGION=eu-west-2 \
    -e AWS_SECRET_NAME=<aws_secret_name> \
    -e GITHUB_ORG=ONSDigital \
@@ -167,7 +173,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
 
    Once the container is running, a local endpoint is created at `localhost:9000/2015-03-31/functions/function/invocations`.
 
-4. Post to the endpoint to trigger the function
+5. Post to the endpoint to trigger the function
 
    ```bash
    curl "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
@@ -175,7 +181,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
 
    This should return a message if successful.
 
-5. Once testing is finished, stop the running container
+6. Once testing is finished, stop the running container
 
    To check the container is running
 
