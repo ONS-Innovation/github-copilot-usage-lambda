@@ -107,7 +107,7 @@ To run the Lambda function outside of a container, we need to execute the `handl
 
   **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine.
 
-3. Export the required environment variables:
+1. Export the required environment variables:
 
    ```bash
    export AWS_DEFAULT_REGION=eu-west-2
@@ -117,13 +117,13 @@ To run the Lambda function outside of a container, we need to execute the `handl
    export GITHUB_APP_CLIENT_ID=<github_app_client_id>
    ```
 
-4. Run the script.
+2. Run the script.
 
    ```bash
    python3 src/main.py
    ```
 
-5. To exit the profile:
+3. To exit the profile:
 
    ```bash
    unset AWS_PROFILE
