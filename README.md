@@ -95,22 +95,38 @@ To run the Lambda function outside of a container, we need to execute the `handl
 
    **Please Note:** If uncommenting the above in `main.py`, make sure you re-comment the code _before_ pushing back to GitHub.
 
-2. Export the required environment variables:
+2. Sign in with AWS SSO, and export the correct profile for this service:
+
+  ```bash
+  aws sso login
+
+  export AWS_PROFILE=github-copilot-usage-lambda
+  ```
+
+  This allows you to assume the AWS IAM role for service, enabling the most secure development experience. This also means you will have limited permissions until you exit out of the profile.
+
+  **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine.
+
+3. Export the required environment variables:
 
    ```bash
-   export AWS_ACCESS_KEY_ID=<aws_access_key_id>
-   export AWS_SECRET_ACCESS_KEY=<aws_secret_access_key>
    export AWS_DEFAULT_REGION=eu-west-2
    export AWS_SECRET_NAME=<aws_secret_name>
+   export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
    export GITHUB_ORG=ONSDigital
    export GITHUB_APP_CLIENT_ID=<github_app_client_id>
-   export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
    ```
 
-3. Run the script.
+4. Run the script.
 
    ```bash
    python3 src/main.py
+   ```
+
+5. To exit the profile:
+
+   ```bash
+   unset AWS_PROFILE
    ```
 
 ### Running in a container
