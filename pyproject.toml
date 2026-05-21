@@ -22,7 +22,7 @@ pycparser = "^2.22"
 python-dateutil = "^2.9.0.post0"
 s3transfer = "^0.13.1"
 six = "^1.17.0"
-urllib3 = "^2.6.3"
+urllib3 = "^2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.5"
