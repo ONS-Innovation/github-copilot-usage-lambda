@@ -73,6 +73,20 @@ resource "aws_iam_role" "lambda_function_role" {
         Principal = {
           Service = "lambda.amazonaws.com"
         }
+      },
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${var.aws_account_id}:root"
+        }
+        Condition = {
+          ArnLike = {
+            "aws:PrincipalArn" = [
+              "arn:aws:iam::${var.aws_account_id}:role/aws-reserved/sso.amazonaws.com/eu-west-2/AWSReservedSSO_Standard_Administrator_Access_*"
+            ]
+          }
+        }
       }
     ]
   })
@@ -137,60 +151,4 @@ resource "aws_iam_role_policy_attachment" "eventbridge_policy" {
 resource "aws_cloudwatch_log_group" "loggroup" {
   name              = "/aws/lambda/${aws_lambda_function.lambda_function.function_name}"
   retention_in_days = var.log_retention_days
-}
-
-# IAM User Group
-resource "aws_iam_group" "group" {
-  name = "${var.env_name}-${var.lambda_name}-user-group"
-  path = "/"
-}
-
-resource "aws_iam_group_policy_attachment" "group_vpc_permissions_attachment" {
-  group      = aws_iam_group.group.name
-  policy_arn = aws_iam_policy.vpc_permissions.arn
-}
-
-resource "aws_iam_group_policy_attachment" "group_lambda_logging_attachment" {
-  group      = aws_iam_group.group.name
-  policy_arn = aws_iam_policy.lambda_logging.arn
-}
-
-resource "aws_iam_group_policy_attachment" "group_lambda_s3_policy_attachment" {
-  group      = aws_iam_group.group.name
-  policy_arn = aws_iam_policy.lambda_s3_policy.arn
-}
-
-resource "aws_iam_group_policy_attachment" "group_lambda_secret_manager_policy_attachment" {
-  group      = aws_iam_group.group.name
-  policy_arn = aws_iam_policy.lambda_secret_manager_policy.arn
-}
-
-resource "aws_iam_group_policy_attachment" "group_lambda_eventbridge_policy_attachment" {
-  group      = aws_iam_group.group.name
-  policy_arn = aws_iam_policy.lambda_eventbridge_policy.arn
-}
-
-# IAM User
-resource "aws_iam_user" "user" {
-  name = "${var.env_name}-${var.lambda_name}"
-  path = "/"
-}
-
-# Assign IAM User to group
-resource "aws_iam_user_group_membership" "user_group_attach" {
-  user = aws_iam_user.user.name
-
-  groups = [
-    aws_iam_group.group.name
-  ]
-}
-
-# IAM Key Rotation Module
-module "iam_key_rotation" {
-  source = "git::https://github.com/ONS-Innovation/keh-aws-iam-key-rotation.git?ref=v0.1.1"
-
-  iam_username          = aws_iam_user.user.name
-  access_key_secret_arn = aws_secretsmanager_secret.access_key.arn
-  secret_key_secret_arn = aws_secretsmanager_secret.secret_key.arn
-  rotation_in_days      = 45
 }
