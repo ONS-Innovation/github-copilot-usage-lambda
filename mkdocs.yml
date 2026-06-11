@@ -7,6 +7,9 @@ repo_name: GitHub Copilot Usage Lambda
 nav:
   - Home: "index.md"
   - Documentation: "documentation.md"
+  - Technical Documentation:
+    - Overview: "technical_documentation/overview.md"
+    - Configuration: "technical_documentation/configuration.md"
 theme:
   name: material
   language: en
