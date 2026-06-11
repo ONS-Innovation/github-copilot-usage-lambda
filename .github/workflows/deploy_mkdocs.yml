@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - KEH-2326_zizmor_update
 permissions:
   contents: write
 jobs:
