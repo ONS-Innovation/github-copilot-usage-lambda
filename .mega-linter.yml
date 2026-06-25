@@ -9,6 +9,9 @@ APPLY_FIXES: all
 
 FORMATTERS_DISABLE_ERRORS: false
 
+ACTION_ZIZMOR_UNSECURED_ENV_VARIABLES:
+  - GITHUB_TOKEN
+
 # If you use ENABLE variable, all other languages/formats/tooling-formats will
 # be disabled by default
 # ENABLE:
