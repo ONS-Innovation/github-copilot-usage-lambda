@@ -27,7 +27,7 @@ resource "aws_security_group" "lambda_sg" {
 resource "aws_lambda_function" "lambda_function" {
   function_name = var.lambda_name
   timeout       = var.lambda_timeout
-  image_uri     = "${data.aws_ecr_repository.profile_lambda_ecr_repo.repository_url}:${var.lambda_version}"
+  image_uri     = "${data.aws_ecr_repository.profile_lambda_ecr_repo.repository_url}@${data.aws_ecr_image.lambda_image.image_digest}"
   package_type  = "Image"
   architectures = [var.lambda_arch]
   logging_config {
@@ -55,6 +55,8 @@ resource "aws_lambda_function" "lambda_function" {
       GITHUB_APP_CLIENT_ID = var.github_app_client_id
       AWS_SECRET_NAME      = var.aws_secret_name
       AWS_ACCOUNT_NAME     = var.env_name
+      IMAGE_DIGEST         = data.aws_ecr_image.lambda_image.image_digest
+      IMAGE_TAG            = var.container_ver
     }
   }
 }
@@ -168,6 +170,12 @@ resource "aws_iam_group_policy_attachment" "group_lambda_secret_manager_policy_a
 resource "aws_iam_group_policy_attachment" "group_lambda_eventbridge_policy_attachment" {
   group      = aws_iam_group.group.name
   policy_arn = aws_iam_policy.lambda_eventbridge_policy.arn
+}
+
+# Resolve the pushed image (must exist before terraform apply)
+data "aws_ecr_image" "lambda_image" {
+  repository_name = var.ecr_repository
+  image_tag       = var.container_ver
 }
 
 # IAM User
