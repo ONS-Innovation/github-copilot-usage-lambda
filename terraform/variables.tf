@@ -30,12 +30,6 @@ variable "lambda_name" {
   default     = "lambda-function"
 }
 
-variable "lambda_version" {
-  description = "AWS Lambda Image Version"
-  type        = string
-  default     = "v0.0.1"
-}
-
 variable "lambda_arch" {
   description = "AWS Lambda Architecture"
   type        = string
@@ -75,6 +69,17 @@ variable "region" {
   description = "AWS region"
   type        = string
   default     = "eu-west-2"
+}
+
+variable "ecr_repository" {
+  description = "Name of the ECR repository containing the Lambda image"
+  type        = string
+}
+
+variable "container_ver" {
+  description = "Container tag"
+  type        = string
+  default     = "v1.0.0"
 }
 
 variable "project_tag" {
