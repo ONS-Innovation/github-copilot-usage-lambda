@@ -49,4 +49,5 @@ terraform apply \
 	-var "github_org=$github_org" \
 	-var "lambda_timeout=${lambda_timeout}" \
 	-var "ecr_repository=${ecr_repository}" \
+	-var "container_ver=${tag}" \
 	-auto-approve
