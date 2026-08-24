@@ -80,12 +80,12 @@ resource "aws_iam_role" "lambda_function_role" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${var.aws_account_id}:root"
+          AWS = "arn:aws:iam::${local.aws_account_id}:root"
         }
         Condition = {
           ArnLike = {
             "aws:PrincipalArn" = [
-              "arn:aws:iam::${var.aws_account_id}:role/aws-reserved/sso.amazonaws.com/eu-west-2/AWSReservedSSO_Standard_Administrator_Access_*"
+              "arn:aws:iam::${local.aws_account_id}:role/aws-reserved/sso.amazonaws.com/eu-west-2/AWSReservedSSO_Standard_Administrator_Access_*"
             ]
           }
         }

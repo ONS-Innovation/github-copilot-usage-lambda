@@ -1,18 +1,3 @@
-variable "aws_account_id" {
-  description = "AWS Account ID"
-  type        = string
-}
-
-variable "aws_access_key_id" {
-  description = "AWS Access Key ID"
-  type        = string
-}
-
-variable "aws_secret_access_key" {
-  description = "AWS Secret Access Key"
-  type        = string
-}
-
 variable "aws_secret_name" {
   description = "The path to the AWS Secret Manager resource which contains the Github App .pem file"
   type        = string
@@ -71,11 +56,6 @@ variable "region" {
   default     = "eu-west-2"
 }
 
-variable "ecr_repository" {
-  description = "Name of the ECR repository containing the Lambda image"
-  type        = string
-}
-
 variable "container_ver" {
   description = "Container tag"
   type        = string
@@ -101,5 +81,6 @@ variable "business_owner_tag" {
 }
 
 locals {
-  lambda_repo = "${var.env_name}-${var.lambda_name}"
+  aws_account_id = data.aws_caller_identity.current.account_id
+  lambda_repo    = "${var.env_name}-${var.lambda_name}"
 }
