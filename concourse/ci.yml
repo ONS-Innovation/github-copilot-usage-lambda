@@ -57,6 +57,7 @@ terraform-task: &terraform-task
       secrets: ((sdp_((env))_copilot_usage_lambda_secrets))
       # kics-scan ignore-line
       github_access_token: ((github_access_token))
+      aws_role_arn: arn:aws:iam::((aws_account_sdp_((env)))):role/sdp-concourse-((env))
       env: ((env))
       branch: ((branch))
     run:
@@ -76,7 +77,9 @@ terraform-task: &terraform-task
             echo "ERROR: Tag '$tag' is not in semantic versioning format (vX.Y.Z)"
             exit 1
           fi
+          chmod u+x ./resource-repo/concourse/scripts/assume_role.sh
           chmod u+x ./resource-repo/concourse/scripts/terraform_infra.sh
+          source ./resource-repo/concourse/scripts/assume_role.sh
           ./resource-repo/concourse/scripts/terraform_infra.sh
     timeout: 30m
 
