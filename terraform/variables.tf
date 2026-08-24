@@ -59,7 +59,6 @@ variable "region" {
 variable "container_ver" {
   description = "Container tag"
   type        = string
-  default     = "v1.0.0"
 }
 
 variable "project_tag" {

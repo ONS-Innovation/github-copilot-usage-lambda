@@ -37,4 +37,5 @@ terraform apply \
 	-var "aws_secret_name=$aws_secret_name" \
 	-var "github_org=$github_org" \
 	-var "lambda_timeout=${lambda_timeout}" \
+	-var "container_ver=${tag}" \
 	-auto-approve
