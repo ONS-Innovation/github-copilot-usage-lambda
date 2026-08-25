@@ -1,0 +1,54 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" version="29.2.9">
+  <diagram name="Page-1" id="3vBX3EtQdH57ldrSx5Wk">
+    <mxGraphModel dx="1395" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;" value="Copilot Usage Lambda &amp;amp;&amp;nbsp;&lt;div&gt;Digital&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Landscape Architecture&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="560" width="630" x="160" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--2" edge="1" parent="1" source="CpdcWXR5zgmDa5A5yRl--4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;" target="CpdcWXR5zgmDa5A5yRl--7" value="Get Historic &amp;amp; Team&lt;div&gt;Data&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="540" y="240" />
+              <mxPoint x="540" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--3" edge="1" parent="1" source="CpdcWXR5zgmDa5A5yRl--4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="CpdcWXR5zgmDa5A5yRl--15" value="Display Data to&lt;div&gt;User&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;spacingTop=25;fillColor=light-dark(#FFFFFF,#333F5C);" value="Digital Landscape: Copilot Page" vertex="1">
+          <mxGeometry height="90" width="120" x="300" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--6" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="GitHub API" vertex="1">
+          <mxGeometry height="80" width="120" x="300" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--7" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="S3&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Buckets&lt;/span&gt;&lt;div&gt;&lt;ul&gt;&lt;li&gt;Historic Usage Data&lt;/li&gt;&lt;li&gt;Copilot Teams Data&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="120" width="190" x="560" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--8" edge="1" parent="1" source="CpdcWXR5zgmDa5A5yRl--9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="CpdcWXR5zgmDa5A5yRl--7" value="Push updated data&lt;div&gt;to S3&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;spacingTop=25;" value="Lambda Function" vertex="1">
+          <mxGeometry height="160" width="160" x="575" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="GitHub API Toolkit&lt;div&gt;(Imported)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="595" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--12" edge="1" parent="1" source="CpdcWXR5zgmDa5A5yRl--10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.875;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;startArrow=classic;startFill=1;" target="CpdcWXR5zgmDa5A5yRl--6" value="Get API Responses&lt;div&gt;to Update&lt;/div&gt;&lt;div&gt;Historic Data &amp;amp;&lt;/div&gt;&lt;div&gt;Copilot teams&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--13" edge="1" parent="1" source="CpdcWXR5zgmDa5A5yRl--4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0.075;entryDx=0;entryDy=0;entryPerimeter=0;startArrow=classic;startFill=1;" target="CpdcWXR5zgmDa5A5yRl--6" value="Get Live Data">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="350" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CpdcWXR5zgmDa5A5yRl--15" parent="1" style="shape=umlActor;verticalLabelPosition=top;verticalAlign=bottom;html=1;outlineConnect=0;labelPosition=center;align=center;" value="User" vertex="1">
+          <mxGeometry height="60" width="30" x="345" y="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
