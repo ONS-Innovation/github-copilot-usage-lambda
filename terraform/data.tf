@@ -2,6 +2,8 @@ data "aws_ecr_repository" "profile_lambda_ecr_repo" {
   name = local.lambda_repo
 }
 
+data "aws_caller_identity" "current" {}
+
 data "aws_ecr_image" "lambda_image" {
   repository_name = data.aws_ecr_repository.profile_lambda_ecr_repo.name
   image_tag       = var.container_ver

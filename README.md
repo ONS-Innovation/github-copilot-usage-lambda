@@ -215,7 +215,7 @@ changes to Concourse instance itself. Make sure to export all necessary environm
 
 #### Setting up a pipeline
 
-When setting up our pipelines, we use ecs-infra-user on sdp-dev to be able to interact with our infrastructure on AWS. The credentials for this are stored on
+When setting up our pipelines, we use IAM roles to be able to interact with our infrastructure on AWS. The credentials for this are stored on
 AWS Secrets Manager so you do not need to set up anything yourself.
 
 To set the pipeline, run the following script:
