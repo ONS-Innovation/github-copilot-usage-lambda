@@ -250,6 +250,7 @@ jobs:
               github_access_token: ((github_access_token))
               env: dev
               secrets: ((sdp_dev_copilot_usage_lambda_secrets))
+              aws_role_arn: arn:aws:iam::((aws_account_sdp_dev)):role/sdp-concourse-dev
         on_failure:
           do:
             - task: notify-azure-webhook
@@ -312,6 +313,7 @@ jobs:
               github_access_token: ((github_access_token))
               env: prod
               secrets: ((sdp_prod_copilot_usage_lambda_secrets))
+              aws_role_arn: arn:aws:iam::((aws_account_sdp_prod)):role/sdp-concourse-prod
         on_failure:
           do:
             - task: notify-azure-webhook
