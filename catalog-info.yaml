@@ -3,6 +3,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: github-copilot-usage-lambda
+  description: AWS Lambda function that collects GitHub Copilot usage history, teams, and team history for the Digital Landscape dashboard.
   annotations:
     github.com/project-slug: ONS-Innovation/github-copilot-usage-lambda
   links:
@@ -12,4 +13,3 @@ spec:
   type: service
   lifecycle: production
   owner: keh-dev
-  system: "system:default/keh-system"
