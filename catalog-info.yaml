@@ -6,9 +6,15 @@ metadata:
   description: AWS Lambda function that collects GitHub Copilot usage history, teams, and team history for the Digital Landscape dashboard.
   annotations:
     github.com/project-slug: ONS-Innovation/github-copilot-usage-lambda
+  tags:
+    - python
+    - aws-lambda
+    - aws-eventbridge
   links:
     - url: https://ons-innovation.github.io/github-copilot-usage-lambda
       title: Copilot Usage Lambda Documentation
+    - url: mailto:knowledge.exchange.hub@ons.gov.uk
+      title: Contact
 spec:
   type: service
   lifecycle: production
