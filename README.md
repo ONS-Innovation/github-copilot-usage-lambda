@@ -97,109 +97,111 @@ To run the Lambda function outside of a container, we need to execute the `handl
 
 2. Sign in with AWS SSO, and export the correct profile for this service:
 
-   ```bash
-   aws sso login
+    ```bash
+    aws sso login
 
-   export AWS_PROFILE=github-copilot-usage-lambda
-   ```
+    export AWS_PROFILE=github-copilot-usage-lambda
+    ```
 
-   This allows you to assume the AWS IAM role for the service, enabling the most secure development experience. This also means you will have limited permissions until you exit out of the profile.
+    This allows you to assume the AWS IAM role for the service, enabling the most secure development experience. This also means you will have limited permissions until you exit out of the profile.
 
-   **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine.
+    **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine.
 
 3. Export the required environment variables:
 
-   ```bash
-   export AWS_DEFAULT_REGION=eu-west-2
-   export AWS_SECRET_NAME=<aws_secret_name>
-   export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
-   export GITHUB_ORG=ONSDigital
-   export GITHUB_APP_CLIENT_ID=<github_app_client_id>
-   ```
+    ```bash
+    export AWS_DEFAULT_REGION=eu-west-2
+    export AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod>
+    export GITHUB_ORG=ONSDigital
+    export GITHUB_CLIENT_ID_SECRET_NAME=sdp-dev/keh-digital-landscape-secrets
+    export GITHUB_PRIVATE_KEY_SECRET_NAME=sdp-dev/keh-digital-landscape-private-key
+    export ALERT_SECRET_NAME=sdp-keh-team-azure/secrets
+    ```
 
 4. Run the script.
 
-   ```bash
-   python3 src/main.py
-   ```
+    ```bash
+    python3 src/main.py
+    ```
 
 5. To exit the profile:
 
-   ```bash
-   unset AWS_PROFILE
-   ```
+    ```bash
+    unset AWS_PROFILE
+    ```
 
 ### Running in a container
 
 1. Build a Docker Image
 
-   ```bash
-   docker build -t copilot-usage-lambda-script .
-   ```
+    ```bash
+    docker build -t copilot-usage-lambda-script .
+    ```
 
 2. Check the image exists
 
-   ```bash
-   docker images
-   ```
+    ```bash
+    docker images
+    ```
 
-   **Example Output:**
+    **Example Output:**
 
-   | REPOSITORY                  | TAG    | IMAGE ID     | CREATED        | SIZE  |
-   | --------------------------- | ------ | ------------ | -------------- | ----- |
-   | copilot-usage-lambda-script | latest | 0bbe73d9256f | 11 seconds ago | 224MB |
+    | REPOSITORY                  | TAG    | IMAGE ID     | CREATED        | SIZE  |
+    | --------------------------- | ------ | ------------ | -------------- | ----- |
+    | copilot-usage-lambda-script | latest | 0bbe73d9256f | 11 seconds ago | 224MB |
 
 3. Sign in with AWS SSO:
 
-   ```bash
-   aws sso login
-   ```
+    ```bash
+    aws sso login
+    ```
 
-   **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine. This is essential as the `~/.aws` directory is mounted to the container, so it can use the SSO session for AWS authentication.
+    **Note:** See the Developer Onboarding Guide on the "Using AWS SSO for Local Development" page on Confluence to set up service profile selection on your local machine. This is essential as the `~/.aws` directory is mounted to the container, so it can use the SSO session for AWS authentication.
 
 4. Run the image locally mapping local host port (9000) to container port (8080).
 
-   ```bash
-   docker run --platform linux/amd64 -p 9000:8080 \
-   -v ~/.aws:/root/.aws \
-   -e AWS_PROFILE=github-copilot-usage-lambda \
-   -e AWS_DEFAULT_REGION=eu-west-2 \
-   -e AWS_SECRET_NAME=<aws_secret_name> \
-   -e GITHUB_ORG=ONSDigital \
-   -e GITHUB_APP_CLIENT_ID=<github_app_client_id> \
-   -e AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod> \
-   copilot-usage-lambda-script
-   ```
+    ```bash
+    docker run --platform linux/amd64 -p 9000:8080 \
+    -v ~/.aws:/root/.aws \
+    -e AWS_PROFILE=github-copilot-usage-lambda \
+    -e AWS_ACCOUNT_NAME=<sdp-dev/sdp-prod> \
+    -e AWS_DEFAULT_REGION=eu-west-2 \
+    -e GITHUB_ORG=ONSDigital \
+    -e GITHUB_CLIENT_ID_SECRET_NAME=sdp-dev/keh-digital-landscape-secrets \
+    -e GITHUB_PRIVATE_KEY_SECRET_NAME=sdp-dev/keh-digital-landscape-private-key \
+    -e ALERT_SECRET_NAME=sdp-keh-team-azure/secrets \
+    copilot-usage-lambda-script
+    ```
 
-   Once the container is running, a local endpoint is created at `localhost:9000/2015-03-31/functions/function/invocations`.
+    Once the container is running, a local endpoint is created at `localhost:9000/2015-03-31/functions/function/invocations`.
 
 5. Post to the endpoint to trigger the function
 
-   ```bash
-   curl "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
-   ```
+    ```bash
+    curl "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
+    ```
 
-   This should return a message if successful.
+    This should return a message if successful.
 
 6. Once testing is finished, stop the running container
 
-   To check the container is running
+    To check the container is running
 
-   ```bash
-   docker ps
-   ```
+    ```bash
+    docker ps
+    ```
 
-   **Example output:**
+    **Example output:**
 
-   | CONTAINER ID | IMAGE                       | COMMAND                | CREATED        | STATUS        | PORTS                                     | NAMES        |
-   | ------------ | --------------------------- | ---------------------- | -------------- | ------------- | ----------------------------------------- | ------------ |
-   | 3f7d64676b1a | copilot-usage-lambda-script | "/lambda-entrypoint.…" | 44 seconds ago | Up 44 seconds | 0.0.0.0:9000->8080/tcp, :::9000->8080/tcp | nice_ritchie |
+    | CONTAINER ID | IMAGE                       | COMMAND                | CREATED        | STATUS        | PORTS                                     | NAMES        |
+    | ------------ | --------------------------- | ---------------------- | -------------- | ------------- | ----------------------------------------- | ------------ |
+    | 3f7d64676b1a | copilot-usage-lambda-script | "/lambda-entrypoint.…" | 44 seconds ago | Up 44 seconds | 0.0.0.0:9000->8080/tcp, :::9000->8080/tcp | nice_ritchie |
 
-   Stop the container
+    Stop the container
 
-   ```bash
-   docker stop 3f7d64676b1a
-   ```
+    ```bash
+    docker stop 3f7d64676b1a
+    ```
 
 ## Deployment
 

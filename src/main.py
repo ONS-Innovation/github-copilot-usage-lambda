@@ -15,16 +15,20 @@ import github_api_toolkit
 from botocore.exceptions import ClientError
 from requests import get
 
+from keh_teams_alert import TeamsAlertClient
+
 # GitHub Organisation
 org = os.getenv("GITHUB_ORG")
 
-# GitHub App Client ID
-client_id = os.getenv("GITHUB_APP_CLIENT_ID")
+# GitHub App Secrets
+client_id_secret_name = os.getenv("GITHUB_CLIENT_ID_SECRET_NAME")
+private_key_secret_name = os.getenv("GITHUB_PRIVATE_KEY_SECRET_NAME")
 
-# AWS Secret Manager Secret Name for the .pem file
-secret_name = os.getenv("AWS_SECRET_NAME")
+# Teams Alert Secrets
+alert_secret_name = os.getenv("ALERT_SECRET_NAME")
+
+# AWS Information
 secret_region = os.getenv("AWS_DEFAULT_REGION")
-
 account = os.getenv("AWS_ACCOUNT_NAME")
 
 # AWS Bucket Path
@@ -34,6 +38,43 @@ OBJECT_NAME = "organisation_history.json"
 logger = logging.getLogger()
 
 logger.setLevel(logging.INFO)
+
+# Initialise AWS clients
+
+session = boto3.Session()
+s3 = session.client("s3")
+secret_manager = session.client("secretsmanager", region_name=secret_region)
+
+# Initialise Teams Alerts
+logger.info("Initialising Teams Alerts")
+
+if not alert_secret_name:
+    raise ValueError("ALERT_SECRET_NAME environment variable is not set")
+
+alert_secrets = secret_manager.get_secret_value(SecretId=alert_secret_name)
+alert_secrets_dict = json.loads(alert_secrets["SecretString"])
+
+# Verify required secret values are present
+required_keys = [
+    "azure_tenant_id",
+    "azure_client_id",
+    "azure_client_secret",
+    "azure_webhook_url",
+    "channel_id",
+]
+for key in required_keys:
+    if key not in alert_secrets_dict:
+        raise ValueError(f"Missing required alert secret key: {key}")
+
+channel_id = alert_secrets_dict.get("channel_id")
+azure_webhook_url = alert_secrets_dict.get("azure_webhook_url")
+
+alerts_client = TeamsAlertClient(
+    tenant_id=alert_secrets_dict.get("azure_tenant_id"),
+    client_id=alert_secrets_dict.get("azure_client_id"),
+    client_secret=alert_secrets_dict.get("azure_client_secret"),
+    scope="https://management.azure.com/.default",
+)
 
 # Example Log Output:
 #
@@ -76,6 +117,17 @@ def get_and_update_historic_usage(
         api_response_json = api_response.json()
     except AttributeError:
         logger.error("Error getting usage data: %s", api_response)
+
+        alerts_client.post_to_webhook(
+            webhook_url=azure_webhook_url,
+            payload={
+                "channel": channel_id,
+                "message": (
+                    f"<b>{account} Copilot Lambda</b><br>Error getting usage data: {api_response}"
+                ),
+            },
+        )
+
         return [], []
 
     usage_data = get(api_response_json["download_links"][0], timeout=30).json()["day_totals"]
@@ -87,6 +139,17 @@ def get_and_update_historic_usage(
         historic_usage = json.loads(response["Body"].read().decode("utf-8"))
     except ClientError as e:
         logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
+
+        alerts_client.post_to_webhook(
+            webhook_url=azure_webhook_url,
+            payload={
+                "channel": channel_id,
+                "message": (
+                    f"<b>{account} Copilot Lambda</b><br>Error getting {OBJECT_NAME} from S3: {e}. Using empty list."
+                ),
+            },
+        )
+
         historic_usage = []
 
     # Append the new usage data to the existing historic usage data
@@ -149,6 +212,17 @@ def update_s3_object(
         return True
     except ClientError as e:
         logger.error("Failed to update %s in bucket %s: %s", object_name, bucket_name, e)
+
+        alerts_client.post_to_webhook(
+            webhook_url=azure_webhook_url,
+            payload={
+                "channel": channel_id,
+                "message": (
+                    f"<b>{account} Copilot Lambda</b><br>Failed to update {object_name} in bucket {bucket_name}: {e}"
+                ),
+            },
+        )
+
         return False
 
 
@@ -230,25 +304,51 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
         format="%(asctime)s %(levelname)s %(message)s",
     )
 
-    # Create an S3 client
-    session = boto3.Session()
-    s3 = session.client("s3")
+    # Initialise GitHub App credentials from AWS Secrets Manager
+    logger.info("Initialising GitHub App credentials from AWS Secrets Manager")
 
-    logger.info("S3 client created")
+    if not client_id_secret_name:
+        raise ValueError("CLIENT_ID_SECRET_NAME environment variable is not set")
+    if not private_key_secret_name:
+        raise ValueError("PRIVATE_KEY_SECRET_NAME environment variable is not set")
 
-    # Get the .pem file from AWS Secrets Manager
-    secret_manager = session.client("secretsmanager", region_name=secret_region)
+    client_id = secret_manager.get_secret_value(SecretId=client_id_secret_name)[
+        "SecretString"
+    ]
+    client_id = json.loads(client_id).get("ClientID")
 
-    logger.info("Secret Manager client created")
+    if not client_id:
+        raise ValueError(
+            "Failed to retrieve ClientID from AWS Secrets Manager. Verify that the secret contains a ClientID key."
+        )
 
-    secret = secret_manager.get_secret_value(SecretId=secret_name)["SecretString"]
+    private_key = secret_manager.get_secret_value(SecretId=private_key_secret_name)[
+        "SecretString"
+    ]
+
+    if not private_key:
+        raise ValueError("Failed to retrieve private key from AWS Secrets Manager.")
 
     # Get updated copilot usage data from GitHub API
-    access_token = github_api_toolkit.get_token_as_installation(org, secret, client_id)
+    logger.info("Getting GitHub access token as installation")
+
+    access_token = github_api_toolkit.get_token_as_installation(org, private_key, client_id)
 
     if isinstance(access_token, str):
         logger.error("Error getting access token: %s", access_token)
+
+        alerts_client.post_to_webhook(
+            webhook_url=azure_webhook_url,
+            payload={
+                "channel": channel_id,
+                "message": (
+                    f"<b>{account} Copilot Lambda</b><br>Error getting access token: {access_token}"
+                ),
+            },
+        )
+
         return f"Error getting access token: {access_token}"
+    
     logger.info("Access token retrieved using AWS Secret")
 
     # Create an instance of the api_controller class
@@ -267,6 +367,20 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
             "dates_added": dates_added,
             "no_dates_before": len(historic_usage) - len(dates_added),
             "no_dates_after": len(historic_usage),
+        },
+    )
+
+    alerts_client.post_to_webhook(
+        webhook_url=azure_webhook_url,
+        payload={
+            "channel": channel_id,
+            "message": (
+                f"<b>{account} Copilot Lambda</b><br>Successfully processed GitHub Copilot usage data.<br>"
+                f"No. of dates added: {len(dates_added)}<br>"
+                f"Dates added: {dates_added}<br>"
+                f"No. of dates before: {len(historic_usage) - len(dates_added)}<br>"
+                f"No. of dates after: {len(historic_usage)}"
+            ),
         },
     )
 
