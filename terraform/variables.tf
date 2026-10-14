@@ -1,8 +1,3 @@
-variable "aws_secret_name" {
-  description = "The path to the AWS Secret Manager resource which contains the Github App .pem file"
-  type        = string
-}
-
 variable "env_name" {
   description = "AWS environment"
   type        = string
@@ -42,13 +37,23 @@ variable "log_retention_days" {
 variable "github_org" {
   description = "Github Organisation"
   type        = string
-  default     = "ONS-Innovation"
 }
 
-variable "github_app_client_id" {
-  description = "Github App Client ID"
+variable "github_client_id_secret_name" {
   type        = string
+  description = "The path to the AWS Secret Manager resource which contains the Github App Client ID"
 }
+
+variable "github_private_key_secret_name" {
+  type        = string
+  description = "The path to the AWS Secret Manager resource which contains the Github App .pem file"
+}
+
+variable "alert_secret_name" {
+  type        = string
+  description = "The path to the AWS Secret Manager resource which contains the alert secret"
+}
+
 
 variable "region" {
   description = "AWS region"

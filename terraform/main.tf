@@ -50,13 +50,14 @@ resource "aws_lambda_function" "lambda_function" {
 
   environment {
     variables = {
-      ENVIRONMENT          = var.env_name
-      GITHUB_ORG           = var.github_org
-      GITHUB_APP_CLIENT_ID = var.github_app_client_id
-      AWS_SECRET_NAME      = var.aws_secret_name
-      AWS_ACCOUNT_NAME     = var.env_name
-      IMAGE_DIGEST         = data.aws_ecr_image.lambda_image.image_digest
-      IMAGE_TAG            = var.container_ver
+      AWS_ACCOUNT_NAME               = var.env_name
+      ENVIRONMENT                    = var.env_name
+      GITHUB_ORG                     = var.github_org
+      GITHUB_CLIENT_ID_SECRET_NAME   = var.github_client_id_secret_name
+      GITHUB_PRIVATE_KEY_SECRET_NAME = var.github_private_key_secret_name
+      ALERT_SECRET_NAME              = var.alert_secret_name
+      IMAGE_DIGEST                   = data.aws_ecr_image.lambda_image.image_digest
+      IMAGE_TAG                      = var.container_ver
     }
   }
 }
