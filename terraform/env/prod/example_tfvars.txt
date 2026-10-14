@@ -1,15 +1,17 @@
 # Do NOT commit the real tfvars file to GitHub
-aws_secret_name         = "sdp/pem"
-env_name                = "sdp-prod"
-lambda_name             = "copilot-usage-lambda"
-lambda_arch             = "x86_64"
-lambda_timeout          = 300
-schedule                = "cron(0 6 ? * 2 *)"
-log_retention_days      = 30
-github_org              = "ONS-Innovation"
-github_app_client_id    = "123456789"
-region                  = "eu-west-2"
-container_ver           = "v1.0.0"
-project_tag             = "SDP"
-team_owner_tag          = "Knowledge Exchange Hub"
-business_owner_tag      = "DST"
+
+env_name                        = "sdp-prod"
+lambda_name                     = "copilot-usage-lambda"
+lambda_arch                     = "x86_64"
+lambda_timeout                  = 300
+schedule                        = "cron(0 6 ? * 2 *)"
+log_retention_days              = 30
+github_org                      = "ONS-Innovation"
+github_client_id_secret_name    = "<path-to-secret>"
+github_private_key_secret_name  = "<path-to-secret>"
+alert_secret_name               = "<path-to-secret>"
+region                          = "eu-west-2"
+container_ver                   = "v1.0.0"
+project_tag                     = "SDP"
+team_owner_tag                  = "Knowledge Exchange Hub"
+business_owner_tag              = "DST"

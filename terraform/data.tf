@@ -79,7 +79,9 @@ data "aws_iam_policy_document" "lambda_secret_manager_policy" {
     ]
 
     resources = [
-      "arn:aws:secretsmanager:*:*:secret:${var.aws_secret_name}*"
+      "arn:aws:secretsmanager:*:*:secret:${var.github_client_id_secret_name}*",
+      "arn:aws:secretsmanager:*:*:secret:${var.github_private_key_secret_name}*",
+      "arn:aws:secretsmanager:*:*:secret:${var.alert_secret_name}*"
     ]
   }
 }
