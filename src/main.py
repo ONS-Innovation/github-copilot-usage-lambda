@@ -13,9 +13,8 @@ from typing import Any
 import boto3
 import github_api_toolkit
 from botocore.exceptions import ClientError
-from requests import get
-
 from keh_teams_alert import TeamsAlertClient
+from requests import get
 
 # GitHub Organisation
 org = os.getenv("GITHUB_ORG")
@@ -62,9 +61,9 @@ required_keys = [
     "azure_webhook_url",
     "channel_id",
 ]
-for key in required_keys:
-    if key not in alert_secrets_dict:
-        raise ValueError(f"Missing required alert secret key: {key}")
+for required_key in required_keys:
+    if required_key not in alert_secrets_dict:
+        raise ValueError(f"Missing required alert secret key: {required_key}")
 
 channel_id = alert_secrets_dict.get("channel_id")
 azure_webhook_url = alert_secrets_dict.get("azure_webhook_url")
@@ -99,12 +98,14 @@ alerts_client = TeamsAlertClient(
 
 
 def get_and_update_historic_usage(
-    s3: boto3.client, gh: github_api_toolkit.github_interface, write_data_locally: bool
+    s3_client: boto3.client,
+    gh: github_api_toolkit.github_interface,
+    write_data_locally: bool,
 ) -> tuple:
     """Get and update historic usage data from GitHub Copilot.
 
     Args:
-        s3 (boto3.client): An S3 client.
+        s3_client (boto3.client): An S3 client.
         gh (github_api_toolkit.github_interface): An instance of the github_interface class.
         write_data_locally (bool): Whether to write data locally instead of to an S3 bucket.
 
@@ -135,7 +136,7 @@ def get_and_update_historic_usage(
 
     # Get the existing historic usage data from S3
     try:
-        response = s3.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
+        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=OBJECT_NAME)
         historic_usage = json.loads(response["Body"].read().decode("utf-8"))
     except ClientError as e:
         logger.error("Error getting %s: %s. Using empty list.", OBJECT_NAME, e)
@@ -145,7 +146,8 @@ def get_and_update_historic_usage(
             payload={
                 "channel": channel_id,
                 "message": (
-                    f"<b>{account} Copilot Lambda</b><br>Error getting {OBJECT_NAME} from S3: {e}. Using empty list."
+                    f"<b>{account} Copilot Lambda</b><br>Error getting {OBJECT_NAME} "
+                    f"from S3: {e}. Using empty list."
                 ),
             },
         )
@@ -167,7 +169,7 @@ def get_and_update_historic_usage(
 
     if not write_data_locally:
         # Write the updated historic_usage to organisation_history.json
-        update_s3_object(s3, BUCKET_NAME, OBJECT_NAME, historic_usage)
+        update_s3_object(s3_client, BUCKET_NAME, OBJECT_NAME, historic_usage)
     else:
         local_path = f"output/{OBJECT_NAME}"
         os.makedirs("output", exist_ok=True)
@@ -218,7 +220,8 @@ def update_s3_object(
             payload={
                 "channel": channel_id,
                 "message": (
-                    f"<b>{account} Copilot Lambda</b><br>Failed to update {object_name} in bucket {bucket_name}: {e}"
+                    f"<b>{account} Copilot Lambda</b><br>Failed to update {object_name} "
+                    f"in bucket {bucket_name}: {e}"
                 ),
             },
         )
@@ -312,19 +315,16 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
     if not private_key_secret_name:
         raise ValueError("PRIVATE_KEY_SECRET_NAME environment variable is not set")
 
-    client_id = secret_manager.get_secret_value(SecretId=client_id_secret_name)[
-        "SecretString"
-    ]
+    client_id = secret_manager.get_secret_value(SecretId=client_id_secret_name)["SecretString"]
     client_id = json.loads(client_id).get("ClientID")
 
     if not client_id:
         raise ValueError(
-            "Failed to retrieve ClientID from AWS Secrets Manager. Verify that the secret contains a ClientID key."
+            "Failed to retrieve ClientID from AWS Secrets Manager. "
+            "Verify that the secret contains a ClientID key."
         )
 
-    private_key = secret_manager.get_secret_value(SecretId=private_key_secret_name)[
-        "SecretString"
-    ]
+    private_key = secret_manager.get_secret_value(SecretId=private_key_secret_name)["SecretString"]
 
     if not private_key:
         raise ValueError("Failed to retrieve private key from AWS Secrets Manager.")
@@ -348,7 +348,7 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
         )
 
         return f"Error getting access token: {access_token}"
-    
+
     logger.info("Access token retrieved using AWS Secret")
 
     # Create an instance of the api_controller class
@@ -375,7 +375,8 @@ def handler(event: dict, context) -> str:  # pylint: disable=unused-argument, to
         payload={
             "channel": channel_id,
             "message": (
-                f"<b>{account} Copilot Lambda</b><br>Successfully processed GitHub Copilot usage data.<br>"
+                f"<b>{account} Copilot Lambda</b><br>"
+                "Successfully processed GitHub Copilot usage data.<br>"
                 f"No. of dates added: {len(dates_added)}<br>"
                 f"Dates added: {dates_added}<br>"
                 f"No. of dates before: {len(historic_usage) - len(dates_added)}<br>"
